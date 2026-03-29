@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 PATTERNS = {
-    "xai/openai style API key": re.compile(r"\b(?:xai|sk)-[A-Za-z0-9]{20,}\b"),
+    "xai/openai style API key": re.compile(r"\b(?:xai|sk)-(?:proj-)?[A-Za-z0-9_-]{16,}\b"),
     "AWS access key": re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     "Private key block": re.compile(r"-----BEGIN (?:[A-Z ]+)?PRIVATE KEY-----"),
     "Likely hardcoded secret assignment": re.compile(
@@ -20,11 +20,13 @@ PATTERNS = {
         ["']
         """
     ),
-    "Potential SSN": re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
+    "Potential SSN": re.compile(r"\b(?!000|666|9\d\d)\d{3}-(?!00)\d{2}-(?!0000)\d{4}\b"),
 }
 
 IGNORED_SECRET_VALUES = {
     "xai-...",
+    "xai-your_key_here",
+    "sk-your_key_here",
     "your_api_key_here",
     "api_key_here",
     "changemechangeme",

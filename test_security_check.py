@@ -9,8 +9,8 @@ class SecurityCheckTests(unittest.TestCase):
     def test_scan_file_flags_realistic_hardcoded_secret(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "sample.py"
-            generated_key = "xai-" + ("a" * 32)
-            path.write_text(f'API_KEY = "{generated_key}"\n', encoding="utf-8")
+            test_api_key = "xai-" + ("a" * 32)
+            path.write_text(f'API_KEY = "{test_api_key}"\n', encoding="utf-8")
             findings = scan_file(path)
             self.assertTrue(findings)
             finding_types = [finding[1] for finding in findings]
@@ -19,7 +19,7 @@ class SecurityCheckTests(unittest.TestCase):
     def test_scan_file_ignores_placeholder_secret_value(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "sample.py"
-            path.write_text('api_key = "xai-..."\n', encoding="utf-8")
+            path.write_text('api_key = "xai-your_key_here"\n', encoding="utf-8")
             findings = scan_file(path)
             self.assertEqual([], findings)
 
