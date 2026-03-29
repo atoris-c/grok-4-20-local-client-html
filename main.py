@@ -174,3 +174,8 @@ async def delete_session(session_id: str):
         file_path.unlink()
         return {"status": "success"}
     return {"error": "not found"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+
