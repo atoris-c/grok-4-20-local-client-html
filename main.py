@@ -124,7 +124,8 @@ class SaveSessionRequest(BaseModel):
     title: str
     chat_history: List[Dict[str, Any]]
 
-SESSIONS_DIR = Path('sessions')
+BASE_DIR = Path(__file__).parent
+SESSIONS_DIR = BASE_DIR / 'sessions'
 SESSIONS_DIR.mkdir(exist_ok=True)
 
 @app.post("/sessions")
