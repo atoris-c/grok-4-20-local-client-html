@@ -4,17 +4,19 @@ from pathlib import Path
 
 from security_check import get_repo_files, scan_file
 
+TEST_KEY_BODY_LENGTH = 32
+
 
 class SecurityCheckTests(unittest.TestCase):
     def test_scan_file_flags_realistic_hardcoded_secret(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "sample.py"
-            test_api_key = "xai-" + ("a" * 32)
+            test_api_key = "xai-" + ("a" * TEST_KEY_BODY_LENGTH)
             path.write_text(f'API_KEY = "{test_api_key}"\n', encoding="utf-8")
             findings = scan_file(path)
             self.assertTrue(findings)
             finding_types = [finding[1] for finding in findings]
-            self.assertIn("xai/openai style API key", finding_types)
+            self.assertIn("XAI/OpenAI style API key", finding_types)
 
     def test_scan_file_ignores_placeholder_secret_value(self):
         with tempfile.TemporaryDirectory() as tmp:
