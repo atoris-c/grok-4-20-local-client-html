@@ -45,3 +45,13 @@ uvicorn main:app --host 127.0.0.1 --port 8000
 ## Privacy & Security
 
 Your API key is never hardcoded. It is saved directly in your browser's `localStorage` and sent directly to your local Python backend, which then securely forwards it in the headers to `x.ai`. Your chat histories are strictly saved locally on your machine.
+
+## First-Push Security Check
+
+Run the repository security scanner before pushing changes to catch likely hardcoded API keys or personal data leaks:
+
+```bash
+python security_check.py
+```
+
+The command exits with code `1` if potential leaks are found and prints file/line details.

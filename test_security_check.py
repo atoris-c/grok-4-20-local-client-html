@@ -1,0 +1,39 @@
+import tempfile
+import unittest
+from pathlib import Path
+
+from security_check import get_repo_files, scan_file
+
+
+class SecurityCheckTests(unittest.TestCase):
+    def test_scan_file_flags_realistic_hardcoded_secret(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "sample.py"
+            path.write_text('API_KEY = "xai-abcdefghijklmnopqrstuvwxyz123456"\n', encoding="utf-8")
+            findings = scan_file(path)
+            self.assertTrue(findings)
+
+    def test_scan_file_ignores_placeholder_secret_value(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "sample.py"
+            path.write_text('api_key = "xai-..."\n', encoding="utf-8")
+            findings = scan_file(path)
+            self.assertEqual([], findings)
+
+    def test_get_repo_files_uses_git_tracked_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "tracked.py").write_text("print('ok')\n", encoding="utf-8")
+            (root / "ignored.bin").write_bytes(b"\x00\x01")
+
+            import subprocess
+
+            subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True)
+            subprocess.run(["git", "add", "tracked.py", "ignored.bin"], cwd=root, check=True, capture_output=True)
+            files = get_repo_files(root)
+            self.assertIn(root / "tracked.py", files)
+            self.assertNotIn(root / "ignored.bin", files)
+
+
+if __name__ == "__main__":
+    unittest.main()
