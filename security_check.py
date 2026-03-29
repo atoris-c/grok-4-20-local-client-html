@@ -61,14 +61,32 @@ def get_repo_files(repo_root: Path) -> list[Path]:
     files = []
     for rel in output.splitlines():
         path = repo_root / rel
-        if path.is_file() and (path.suffix.lower() in TEXT_SUFFIX_ALLOWLIST or not path.suffix):
+        if not path.is_file():
+            continue
+
+        suffix = path.suffix.lower()
+        if suffix in TEXT_SUFFIX_ALLOWLIST:
+            files.append(path)
+            continue
+
+        if not suffix and is_probably_text_file(path):
             files.append(path)
     return files
 
 
 def should_skip_generic_secret(match_text: str) -> bool:
     lowered = match_text.lower()
-    return lowered in IGNORED_SECRET_VALUES or "..." in match_text
+    if lowered in IGNORED_SECRET_VALUES:
+        return True
+    return bool(re.fullmatch(r"\{[^{}]+\}", match_text.strip()))
+
+
+def is_probably_text_file(path: Path) -> bool:
+    try:
+        head = path.read_bytes()[:1024]
+    except OSError:
+        return False
+    return b"\x00" not in head
 
 
 def scan_file(path: Path) -> list[tuple[int, str, str]]:

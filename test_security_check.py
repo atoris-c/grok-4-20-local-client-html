@@ -9,9 +9,12 @@ class SecurityCheckTests(unittest.TestCase):
     def test_scan_file_flags_realistic_hardcoded_secret(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "sample.py"
-            path.write_text('API_KEY = "xai-abcdefghijklmnopqrstuvwxyz123456"\n', encoding="utf-8")
+            generated_key = "xai-" + ("a" * 32)
+            path.write_text(f'API_KEY = "{generated_key}"\n', encoding="utf-8")
             findings = scan_file(path)
             self.assertTrue(findings)
+            finding_types = [finding[1] for finding in findings]
+            self.assertIn("xai/openai style API key", finding_types)
 
     def test_scan_file_ignores_placeholder_secret_value(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -25,13 +28,20 @@ class SecurityCheckTests(unittest.TestCase):
             root = Path(tmp)
             (root / "tracked.py").write_text("print('ok')\n", encoding="utf-8")
             (root / "ignored.bin").write_bytes(b"\x00\x01")
+            (root / "README").write_text("plain text without extension\n", encoding="utf-8")
 
             import subprocess
 
             subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True)
-            subprocess.run(["git", "add", "tracked.py", "ignored.bin"], cwd=root, check=True, capture_output=True)
+            subprocess.run(
+                ["git", "add", "tracked.py", "ignored.bin", "README"],
+                cwd=root,
+                check=True,
+                capture_output=True,
+            )
             files = get_repo_files(root)
             self.assertIn(root / "tracked.py", files)
+            self.assertIn(root / "README", files)
             self.assertNotIn(root / "ignored.bin", files)
 
 
