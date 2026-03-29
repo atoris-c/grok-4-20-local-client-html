@@ -1,0 +1,1553 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grok Local Client</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        :root {
+            --accent-color: #58a6ff;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background: #121212; 
+            color: #ececec; 
+            display: flex; 
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Sidebar */
+        #sidebar { 
+            width: 260px; 
+            min-width: 260px;
+            flex-shrink: 0;
+            background: #0a0a0a; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            border-right: 1px solid #222;
+        }
+        #sidebar h3 { margin-top: 0; margin-bottom: 20px; font-size: 1.2rem; }
+        
+        /* Form Elements */
+        label { font-size: 0.9rem; margin-bottom: 5px; display: block; color: #a0a0a0; }
+        select, input[type="text"], input[type="password"], input[type="number"], textarea, button { 
+            width: 100%; 
+            padding: 10px; 
+            margin-bottom: 15px; 
+            background: #222; 
+            color: #ececec; 
+            border: 1px solid #333; 
+            border-radius: 6px; 
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+        select:focus, input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+        textarea { resize: vertical; min-height: 80px; }
+        button { 
+            background: var(--accent-color); 
+            color: white; 
+            border: 1px solid transparent; 
+            cursor: pointer; 
+            font-weight: 600; 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        button.hollow {
+            background: transparent;
+            color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+        button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        button:active { transform: translateY(1px); }
+        
+        .toggle-group { display: flex; border: 1px solid #333; border-radius: 6px; overflow: hidden; margin-bottom: 15px; background: #222; }
+        .toggle-btn { flex: 1; padding: 10px 5px !important; background: transparent; border: none; color: #a0a0a0; font-size: 0.9rem; cursor: pointer; text-align: center; border-right: 1px solid #333; margin: 0; border-radius: 0; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s ease; }
+        .toggle-btn:hover:not(.active) { background: #2a2a2a; color: #ddd; }
+        .toggle-btn:last-child { border-right: none; }
+        .toggle-btn.active { background: #333; color: var(--accent-color); font-weight: bold; }
+        
+        #chat-header { padding: 20px; font-size: 1.4rem; font-weight: 800; color: #ececec; background: #121212; position: relative; z-index: 10; }
+        #chat-header::after { content: ""; position: absolute; left: 0; right: 0; bottom: -40px; height: 40px; background: linear-gradient(to bottom, #121212, rgba(18, 18, 18, 0)); pointer-events: none; }
+        #model-badge { color: var(--accent-color); margin-left: 8px; font-weight: 600; font-size: 1.2rem; }
+        .badge-bold { font-weight: 800; }
+        button:disabled { background: #555 !important; cursor: not-allowed; color: #999 !important; transform: none !important; }
+        button.secondary { background: #333; }
+        button.secondary:hover { background: #444; }
+
+        /* Main Chat Area */
+        #main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        #chat-box { 
+            flex-grow: 1; 
+            overflow-y: auto; 
+            padding: 20px; 
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding-bottom: 150px; 
+        }
+        
+        @keyframes fadeInSlideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message-row { display: flex; width: 100%; gap: 12px; }
+        .message-row.user { flex-direction: row-reverse; }
+        .message-row.grok { justify-content: flex-start; }
+        
+        .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background-color: #444; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; font-weight:bold; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .msg-wrap { display: flex; flex-direction: column; max-width: 80%; }
+        .msg-header { font-size: 0.85rem; color: #a0a0a0; margin-bottom: 4px; display: flex; align-items: center; padding: 0 4px; }
+        .message-row.user .msg-header { justify-content: flex-end; }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            border: 1px solid #333;
+            background: #222;
+        }
+        
+        .message-row.user .message {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            color: #fff;
+            border-radius: 24px;
+            border-top-right-radius: 4px;
+            margin-left: auto;
+        }
+
+        .message-row.grok .message { 
+            border-top-left-radius: 4px; 
+            border-bottom-left-radius: 4px; 
+            background: transparent;
+            color: #ececec;
+            border-color: transparent;
+            padding: 0;
+            padding-top: 5px;
+        }
+
+        .msg-bubble-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+        }
+        
+        .message-row.user .msg-bubble-container {
+            flex-direction: row-reverse;
+        }
+        
+        .line-info {
+            font-size: 0.7rem;
+            color: #888;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            margin-bottom: 2px;
+            white-space: nowrap;
+        }
+        .line-info .read-mark { margin-bottom: 2px; }
+        
+        .message.system {
+            background: transparent;
+            color: #888;
+            font-size: 0.9rem;
+            text-align: center;
+            width: 100%;
+            margin-bottom: -10px;
+        }
+
+        /* Splash Logo */
+        #grok-splash {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+            min-height: 200px;
+        }
+        #grok-splash img {
+            width: 270px; /* 50% larger than previous */
+            user-select: none;
+        }
+
+        /* Displays user images in chat history */
+        .user-image-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .user-image-grid img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid #444;
+        }
+
+        /* Markdown Styles in AI Msg */
+        .message.grok pre { background: #000; padding: 10px; border-radius: 6px; overflow-x: auto; }
+        .message.grok code { background: #000; padding: 2px 4px; border-radius: 4px; font-family: monospace; }
+        .message.grok p { margin-top: 0; }
+        .message.grok p:last-child { margin-bottom: 0; }
+
+        /* Actions under AI message */
+        .msg-actions { margin-top: 8px; display: flex; gap: 8px; opacity: 0; transition: opacity 0.2s ease; }
+        .message-row:hover .msg-actions { opacity: 1; }
+        .msg-actions button {
+            width: auto; padding: 4px 10px; margin: 0; font-size: 0.8rem;
+            background: #333; color: #ccc; border: none;
+            transition: all 0.2s ease;
+        }
+        .msg-actions button:hover { background: #444; color: #fff; transform: translateY(-1px); }
+
+        /* Input Area at Bottom */
+        #input-area {
+            position: absolute; bottom: 0; left: 0; right: 0; padding: 20px;
+            background: linear-gradient(to top, #121212 80%, rgba(18, 18, 18, 0));
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        #image-preview-container {
+            display: flex; gap: 10px; width: 100%; max-width: 800px; margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .image-preview-item {
+            position: relative; width: 60px; height: 60px; border-radius: 8px;
+            border: 1px solid #555; background-size: cover; background-position: center;
+        }
+        .image-remove-btn {
+            position: absolute; top: -5px; right: -5px; background: red; color: white;
+            border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            padding: 0; margin: 0; line-height: 1;
+        }
+        
+        .input-container {
+            width: 85%; max-width: 700px; display: flex; gap: 10px;
+            background: #222; padding: 10px 15px; border-radius: 24px; border: 1px solid transparent;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        
+        .input-container:focus-within {
+            width: 100%; max-width: 800px;
+            border-color: var(--accent-color);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .attach-btn {
+            background: transparent; color: #a0a0a0; border: none; font-size: 1.2rem;
+            cursor: pointer; width: auto; padding: 5px; margin: 0; display: flex; align-items: center; justify-content: center;
+        }
+        .attach-btn:hover { color: #fff; background: #333; border-radius: 50%; }
+
+        .input-container textarea {
+            margin: 0; border: none; background: transparent; padding: 5px;
+            box-shadow: none; color: #ececec; flex-grow: 1;
+            resize: none; max-height: 150px; overflow-y: auto; height: 32px;
+            font-family: inherit; line-height: 1.5; min-height: unset;
+        }
+        .input-container textarea:focus { outline: none; }
+        
+        .send-button { width: 36px; height: 36px; border-radius: 50%; padding: 0; margin: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .send-button i { font-size: 1.1rem; }
+
+        /* Stop Generation Button */
+        #stop-btn-container { display: none; margin-bottom: 10px; }
+        #stop-btn {
+            width: auto; margin: 0; background: transparent; border: 1px solid #555;
+            color: #ddd; display: flex; align-items: center; gap: 5px;
+            border-radius: 20px; padding: 5px 15px;
+        }
+        #stop-btn:hover { background: #333; }
+        #stop-btn::before {
+            content: ""; display: inline-block; width: 10px; height: 10px;
+            background: #ddd; border-radius: 2px;
+        }
+
+        /* Thinking Indicator */
+        .thinking {
+            display: flex; gap: 4px; align-items: center; height: 24px;
+            color: #888; font-style: italic; overflow: hidden;
+        }
+        .thinking span {
+            width: 6px; height: 6px; background-color: #888; border-radius: 50%;
+            animation: pulse 1.4s infinite ease-in-out both;
+        }
+        .thinking span:nth-child(1) { animation-delay: -0.32s; }
+        .thinking span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes pulse {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* Modals */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.95) translateY(-10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.8); z-index: 100;
+            align-items: center; justify-content: center;
+            animation: fadeIn 0.2s ease-out forwards;
+        }
+        .modal-content {
+            background: #222; padding: 30px; border-radius: 12px; width: 450px; 
+            border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-height: 90vh; overflow-y: auto;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .modal-content h3 { margin-top: 0; margin-bottom: 20px; text-align: center;}
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-actions button { margin: 0; }
+
+        /* Fullscreen Image Preview */
+        #fullscreen-img-preview {
+            max-width: 90vw; max-height: 90vh; object-fit: contain;
+        }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #777; }
+
+        /* History List */
+        #history-container { flex-grow: 1; overflow-y: auto; margin-top: 20px; border-top: 1px solid #222; padding-top: 15px; }
+        .history-item { padding: 10px; border-radius: 6px; cursor: pointer; color: #ccc; font-size: 0.9rem; margin-bottom: 0px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease; border: 1px solid transparent; }
+        .history-item:hover { background: #222; color: #fff; transform: translateX(4px); }
+        .history-item.active { background: var(--accent-color); color: #fff; font-weight: bold; transform: translateX(0); }
+        .history-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; margin-right: 10px; }
+        .history-del-btn { color: #aaa; background: transparent; border: none; font-size: 1rem; cursor: pointer; padding: 4px 8px; border-radius: 4px; display: none; width: auto; margin: 0; flex-shrink: 0; }
+        .history-item:hover .history-del-btn { display: inline-block; }
+        .history-del-btn:hover { background: rgba(255,0,0,0.3); color: #f85149; }
+        
+        input[type="range"] { accent-color: var(--accent-color); }
+        .settings-row { display: flex; gap: 15px; width: 100%; }
+        .settings-col { flex: 1; display: flex; flex-direction: column; }
+        .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .slider-row input[type="range"] { flex-grow: 1; margin: 0; }
+        .slider-row input[type="number"] { width: 55px; margin: 0; padding: 5px; text-align: center; }
+        
+        .msg-actions.user-actions { justify-content: flex-end; margin-top: 4px; }
+        .model-info-badge { color: #888; font-size: 0.75rem; margin-right: auto; display: flex; align-items: center;}
+
+        /* Tables */
+        .message table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 15px;
+            color: #ececec;
+            border: 1px solid #444;
+        }
+        .message th, .message td {
+            border: 1px solid #444;
+            padding: 10px 14px;
+            text-align: left;
+        }
+        .message th {
+            background-color: #333;
+            font-weight: 600;
+        }
+        .message tr:nth-child(even) {
+            background-color: #2a2a2a;
+        }
+        .message-row.user .message table,
+        .message-row.user .message th,
+        .message-row.user .message td {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .message-row.user .message th {
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+        .message-row.user .message tr:nth-child(even) {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h3>Grok Local Client</h3>
+        <button id="new-chat-btn" class="hollow" onclick="newChat()"><i class="fa-solid fa-plus"></i> New Chat</button>
+        <button class="secondary" onclick="document.getElementById('options-modal').style.display='flex'"><i class="fa-solid fa-gear"></i> Settings</button>
+
+        <div style="margin-top: 20px;">
+            <label>Model Variant</label>
+            <div class="toggle-group" id="model-toggles">
+                <button class="toggle-btn active" data-val="grok-4.20-beta-0309-non-reasoning" onclick="setModel(this)"><i class="fa-solid fa-bolt"></i> <!--Fast--></button>
+                <button class="toggle-btn" data-val="grok-4.20-beta-0309-reasoning" onclick="setModel(this)"><i class="fa-solid fa-brain"></i> <!--Reason--></button>
+                <button class="toggle-btn" data-val="grok-4.20-multi-agent-beta-0309" onclick="setModel(this)"><i class="fa-solid fa-robot"></i> <!--Agents--></button>
+            </div>
+            <input type="hidden" id="model-select" value="grok-4.20-beta-0309-non-reasoning">
+
+            <div id="agent-count-container" style="display: none;">
+                <label>Agent Count</label>
+                <div class="toggle-group" id="agent-toggles">
+                    <button class="toggle-btn active" data-val="4" onclick="setAgentCount(this)"><i class="fa-solid fa-user"></i> 4</button>
+                    <button class="toggle-btn" data-val="16" onclick="setAgentCount(this)"><i class="fa-solid fa-users"></i> 16</button>
+                </div>
+                <input type="hidden" id="agent-count" value="4">
+            </div>
+        </div>
+        
+        <h4 style="color: #888; margin-top: 20px; margin-bottom: 10px; font-size: 0.85rem; text-transform: uppercase;">Chat History</h4>
+        <div id="history-container">
+            <!-- Sessions list goes here -->
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div id="chat-header">
+            Grok 4.20 <span id="model-badge">Fast</span>
+        </div>
+        <div id="chat-box">
+            <div id="grok-splash">
+                <img src="img/grok.svg" alt="Grok">
+            </div>
+            <div class="message-row" style="justify-content: center;">
+                <div class="message system" id="sys-msg-container" style="text-align: center; max-width: 800px; line-height: 1.6;">Instruction: ...</div>
+            </div>
+        </div>
+
+        <div id="input-area">
+            <div id="stop-btn-container">
+                <button id="stop-btn" onclick="stopGeneration()">Stop generating</button>
+            </div>
+            <div id="image-preview-container"></div>
+            <div class="input-container">
+                <button class="attach-btn" onclick="document.getElementById('file-input').click()" title="Attach Image"><i class="fa-solid fa-paperclip"></i></button>
+                <input type="file" id="file-input" accept="image/*" multiple style="display: none;" onchange="handleFileSelect(event)">
+                <textarea id="user-input" rows="1" placeholder="Message Grok..." oninput="validateInput(); autoResize(this)" onkeypress="handleKeyPress(event)" autocomplete="off"></textarea>
+                <button class="send-button" id="send-btn" onclick="sendMessage()" onmousedown="event.preventDefault();" disabled><i class="fa-solid fa-arrow-up"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Options Modal -->
+    <div id="options-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Settings</h3>
+            
+            <label>xAI API Key:</label>
+            <input type="password" id="api-key-input" placeholder="xai-..." />
+            
+            <div class="settings-row">
+                <div class="settings-col">
+                    <label>User Display Name:</label>
+                    <input type="text" id="user-name-input" placeholder="You" />
+                </div>
+                <div class="settings-col">
+                    <label>AI Display Name:</label>
+                    <input type="text" id="ai-name-input" placeholder="Grok" />
+                </div>
+            </div>
+
+            <label>System Instruction:</label>
+            <textarea id="system-prompt">You are Grok. Use your tools when necessary.</textarea>
+
+            <label>Max Context Messages (Default 10):</label>
+            <input type="number" id="max-context" value="10" min="1" max="100"/>
+            
+            <label>Images Resubmission</label>
+            <div class="toggle-group" id="resubmit-toggles" style="margin-bottom: 15px;">
+                <button class="toggle-btn active" onclick="setResubmit(this, true)"><i class="fa-solid fa-check"></i> Enabled</button>
+                <button class="toggle-btn" onclick="setResubmit(this, false)"><i class="fa-solid fa-xmark"></i> Disabled</button>
+            </div>
+            <input type="hidden" id="resubmit-images" value="true">
+            
+            <div class="settings-row">
+                <div class="settings-col">
+                    <label>Temperature:</label>
+                    <div class="slider-row">
+                        <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7" oninput="document.getElementById('temp-num').value = this.value"/>
+                        <input type="number" id="temp-num" min="0" max="2" step="0.1" value="0.7" oninput="document.getElementById('temperature').value = this.value"/>
+                    </div>
+                </div>
+                <div class="settings-col">
+                    <label>Top P:</label>
+                    <div class="slider-row">
+                        <input type="range" id="top-p" min="0" max="1" step="0.05" value="1.0" oninput="document.getElementById('top-p-num').value = this.value"/>
+                        <input type="number" id="top-p-num" min="0" max="1" step="0.05" value="1.0" oninput="document.getElementById('top-p').value = this.value"/>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="secondary" onclick="document.getElementById('options-modal').style.display='none'">Cancel</button>
+                <button onclick="saveOptions()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Image Modal -->
+    <div id="image-modal" class="modal-overlay" onclick="closeImageModal(event)">
+        <img id="fullscreen-img-preview" src="" alt="Preview">
+    </div>
+
+    
+    <script>
+        let currentSessionId = null;
+        let currentSessionTitle = null;
+        let isGeneratingTitle = false;
+
+        async function loadSessionsList() {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/sessions');
+                const data = await response.json();
+                const container = document.getElementById('history-container');
+                if (!container) return;
+                container.innerHTML = '';
+        
+                data.sessions.forEach(sess => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    if (currentSessionId === sess.id) item.classList.add('active');
+        
+                    const title = document.createElement('div');
+                    title.className = 'history-title';
+                    title.textContent = sess.title || "Untitled Chat";
+                    
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'history-del-btn';
+                    delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                    delBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        if (confirm('Delete this chat?')) {
+                            await fetch(`http://127.0.0.1:8000/sessions/${sess.id}`, { method: 'DELETE' });
+                            if (currentSessionId === sess.id) {
+                                newChat();
+                            } else {
+                                loadSessionsList();
+                            }
+                        }
+                    };
+        
+                    item.onclick = () => loadSession(sess.id);
+                    item.appendChild(title);
+                    item.appendChild(delBtn);
+                    container.appendChild(item);
+                });
+            } catch(err) {
+                console.error("Failed to load sessions:", err);
+            }
+        }
+        
+        async function loadSession(id) {
+            try {
+                const response = await fetch(`http://127.0.0.1:8000/sessions/${id}`);
+                const data = await response.json();
+                chatHistory = data.chat_history || [];
+                
+                // Migrate flat history
+                if (chatHistory.length > 0 && !chatHistory[0].id) {
+                    let prevId = null;
+                    chatHistory.forEach(item => {
+                        item.id = generateId();
+                        item.parentId = prevId;
+                        prevId = item.id;
+                    });
+                }
+                
+                if (chatHistory.length > 0) {
+                    // Try to find if there's a specific saved branch, otherwise just take the last node 
+                    currentNodeId = chatHistory[chatHistory.length - 1].id;
+                } else {
+                    currentNodeId = null;
+                }
+                
+                currentSessionId = id;
+                currentSessionTitle = data.title || "Untitled Chat";
+                renderFullChat();
+                loadSessionsList();
+                
+                const newChatBtn = document.getElementById("new-chat-btn");
+                if (newChatBtn) {
+                    if (chatHistory.length > 0) newChatBtn.classList.remove("hollow");
+                    else newChatBtn.classList.add("hollow");
+                }
+            } catch(err) {
+                console.error("Failed to load session:", err);
+            }
+        }
+        
+        async function generateTitleAndSave() {
+            const firstUserMsg = chatHistory.find(m => m.role === 'user');
+            let text = "Chat";
+            if (firstUserMsg) {
+                if (typeof firstUserMsg.content === 'string') text = firstUserMsg.content;
+                else {
+                    const txt = firstUserMsg.content.find(p => p.type === 'input_text');
+                    if (txt && txt.text.trim()) text = txt.text;
+                }
+            }
+            
+            const apiKey = localStorage.getItem("grok_api_key") || "";
+            if (!apiKey) {
+                currentSessionTitle = text.substring(0, 30);
+                return await _persistSession();
+            }
+            
+            try {
+                const response = await fetch("http://127.0.0.1:8000/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        messages: [{role: "user", content: "Write a short 3-5 word title summarizing this message: " + text}],
+                        model: document.getElementById("model-select").value || "grok-2-latest",
+                        agent_count: 4,
+                        api_key: apiKey,
+                        temperature: 0.3,
+                        top_p: 1.0,
+                        system_prompt: "Output only the short title. No quotes, no intro, no punctuation."
+                    })
+                });
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let generatedTitle = "";
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    const chunks = decoder.decode(value, { stream: true }).split("\n");
+                    for (const chunk of chunks) {
+                        if (chunk.trim()) {
+                            try {
+                                const parsed = JSON.parse(chunk);
+                                if (parsed.type === "text") {
+                                    generatedTitle += parsed.content;
+                                }
+                            } catch (e) {}
+                        }
+                    }
+                }
+                if (generatedTitle.trim()) {
+                    currentSessionTitle = generatedTitle.trim().replace(/^["']|["']$/g, '');
+                    await _persistSession();
+                }
+            } catch (e) {
+                console.error("Title gen failed", e);
+                currentSessionTitle = text.substring(0, 30);
+                await _persistSession();
+            }
+        }
+
+        async function _persistSession() {
+            try {
+                await fetch('http://127.0.0.1:8000/sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: currentSessionId,
+                        title: currentSessionTitle || "New Chat...",
+                        chat_history: chatHistory
+                    })
+                });
+                loadSessionsList();
+            } catch(err) {
+                console.error("Failed to save session:", err);
+            }
+        }
+
+        async function saveCurrentSession() {
+            if (chatHistory.length === 0) return;
+            if (!currentSessionId) {
+                currentSessionId = 'session_' + Date.now();
+            }
+            
+            if (!currentSessionTitle) {
+                currentSessionTitle = "New Chat...";
+                if (!isGeneratingTitle) {
+                    isGeneratingTitle = true;
+                    // Trigger async generation
+                    generateTitleAndSave().finally(() => isGeneratingTitle = false);
+                }
+            }
+            
+            await _persistSession();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSessionsList();
+        });
+
+
+        let chatHistory = [];
+        let currentAbortController = null;
+        let pendingImages = []; // Array of objects: { file, base64 }
+
+        let currentNodeId = null; // Tracks current leaf in the chat tree
+        
+        // Helper to generate a unique ID for messages
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        }
+
+        // Helper to get the linear conversation path from root to current node
+        function getActiveThread() {
+            if (!currentNodeId) return [];
+            let thread = [];
+            let currId = currentNodeId;
+            while (currId) {
+                const node = chatHistory.find(n => n.id === currId);
+                if (!node) break;
+                thread.unshift(node);
+                currId = node.parentId;
+            }
+            return thread;
+        }
+
+        // Helper to find a leaf from a given node
+        function getLeaf(nodeId) {
+            let curr = nodeId;
+            while (true) {
+                let children = chatHistory.filter(n => n.parentId === curr);
+                if (children.length === 0) break;
+                // pick the latest child
+                curr = children[children.length - 1].id;
+            }
+            return curr;
+        }
+
+        function switchToBranch(nodeId) {
+            currentNodeId = getLeaf(nodeId);
+            saveCurrentSession();
+            renderFullChat();
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadOptions();
+            updateTheme(document.getElementById('model-select').value, document.getElementById('agent-count').value);
+            updateSystemMessage();
+            setupDragAndDropOrPaste();
+        });
+
+
+        function updateSystemMessage() {
+            const el = document.getElementById("sys-msg-container");
+            if (el) {
+                const sp = document.getElementById("system-prompt").value || "You are Grok. Use your tools when necessary.";
+                el.innerHTML = "<strong>Instruction:</strong><br><span style='color:#a0a0a0;'>" + sp.replace(/\n/g, '<br>') + "</span>";
+            }
+        }
+
+        function updateTheme(modelValue, agentCountValue) {
+            const root = document.documentElement;
+            const badge = document.getElementById("model-badge");
+            
+            if (modelValue === "grok-4.20-beta-0309-non-reasoning") {
+                root.style.setProperty("--accent-color", "#1eb954"); // less intense green
+                badge.textContent = "Fast";
+                badge.className = "";
+            } else if (modelValue === "grok-4.20-beta-0309-reasoning") {
+                root.style.setProperty("--accent-color", "#a371f7"); // purple
+                badge.textContent = "Reasoning";
+                badge.className = "";
+            } else if (modelValue === "grok-4.20-multi-agent-beta-0309") {
+                if (agentCountValue === "16") {
+                    root.style.setProperty("--accent-color", "#f85149"); // red
+                    badge.textContent = "Multi Agent+";
+                    badge.className = "badge-bold";
+                } else {
+                    root.style.setProperty("--accent-color", "#fb8f24"); // orange
+                    badge.textContent = "Multi Agent";
+                    badge.className = "";
+                }
+            }
+        }
+
+        function setModel(btn) {
+            // Update active styling
+            const toggles = document.querySelectorAll('#model-toggles .toggle-btn');
+            toggles.forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const modelValue = btn.getAttribute('data-val');
+            document.getElementById('model-select').value = modelValue;
+            
+            const agentCountContainer = document.getElementById("agent-count-container");
+            if (modelValue === "grok-4.20-multi-agent-beta-0309") {
+                agentCountContainer.style.display = "block";
+            } else {
+                agentCountContainer.style.display = "none";
+            }
+            
+            updateTheme(modelValue, document.getElementById('agent-count').value);
+            localStorage.setItem("grok_model_variant", modelValue);
+        }
+
+        
+        function setResubmit(btn, val) {
+            const group = btn.parentElement;
+            group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('resubmit-images').value = val ? "true" : "false";
+        }
+
+        
+        function setResubmit(btn, val) {
+            const group = btn.parentElement;
+            group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('resubmit-images').value = val ? "true" : "false";
+        }
+
+        function setAgentCount(btn) {
+            const toggles = document.querySelectorAll('#agent-toggles .toggle-btn');
+            toggles.forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const agentValue = btn.getAttribute('data-val');
+            document.getElementById('agent-count').value = agentValue;
+            
+            updateTheme(document.getElementById('model-select').value, agentValue);
+            localStorage.setItem("grok_agent_count", agentValue);
+        }
+
+        function getUserName() { return localStorage.getItem("grok_user_name") || "You"; }
+        function getAiName() { return localStorage.getItem("grok_ai_name") || "Grok"; }
+        
+        function getAvatarHtml(isUser) {
+            const roleStr = isUser ? 'user' : 'ai';
+            const letter = isUser ? getUserName().charAt(0).toUpperCase() : getAiName().charAt(0).toUpperCase();
+            const fallback = `this.onerror=null; this.parentElement.innerHTML='${letter}';`;
+            return `<img src="img/${roleStr}.png" onerror="${fallback}" alt="Avatar">`;
+        }
+
+        function loadOptions() {
+            const savedModel = localStorage.getItem("grok_model_variant");
+            if (savedModel) {
+                const btn = document.querySelector(`#model-toggles .toggle-btn[data-val="${savedModel}"]`);
+                if (btn) setModel(btn);
+            }
+
+            const savedAgentCount = localStorage.getItem("grok_agent_count");
+            if (savedAgentCount) {
+                const btn = document.querySelector(`#agent-toggles .toggle-btn[data-val="${savedAgentCount}"]`);
+                if (btn) setAgentCount(btn);
+            }
+
+            const resubmitImages = localStorage.getItem("grok_resubmit_images");
+            if (resubmitImages === "false") {
+                const group = document.getElementById("resubmit-toggles");
+                if(group) {
+                    group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+                    group.children[1].classList.add('active'); // set disabled active
+                }
+                document.getElementById('resubmit-images').value = "false";
+            }
+            
+            const savedUser = localStorage.getItem("grok_user_name");
+            if (savedUser) document.getElementById("user-name-input").value = savedUser;
+            else document.getElementById("user-name-input").value = "You";
+            
+            const savedAi = localStorage.getItem("grok_ai_name");
+            if (savedAi) document.getElementById("ai-name-input").value = savedAi;
+            else document.getElementById("ai-name-input").value = "Grok";
+
+            const savedKey = localStorage.getItem("grok_api_key");
+            if (savedKey) document.getElementById("api-key-input").value = savedKey;
+
+            const sysPrompt = localStorage.getItem("grok_system_prompt");
+            if (sysPrompt) document.getElementById("system-prompt").value = sysPrompt;
+
+            const maxCtx = localStorage.getItem("grok_max_context");
+            if (maxCtx) document.getElementById("max-context").value = maxCtx;
+
+            const temp = localStorage.getItem("grok_temperature");
+            if (temp) { document.getElementById("temperature").value = temp; document.getElementById("temp-num").value = temp; }
+
+            const topP = localStorage.getItem("grok_top_p");
+            if (topP) { document.getElementById("top-p").value = topP; document.getElementById("top-p-num").value = topP; }
+        }
+
+        function saveOptions() {
+            localStorage.setItem("grok_user_name", document.getElementById("user-name-input").value || "You");
+            updateSystemMessage();
+            localStorage.setItem("grok_ai_name", document.getElementById("ai-name-input").value || "Grok");
+            localStorage.setItem("grok_api_key", document.getElementById("api-key-input").value);
+            localStorage.setItem("grok_system_prompt", document.getElementById("system-prompt").value);
+            localStorage.setItem("grok_max_context", document.getElementById("max-context").value);
+            localStorage.setItem("grok_temperature", document.getElementById("temperature").value);
+            localStorage.setItem("grok_top_p", document.getElementById("top-p").value);
+            localStorage.setItem("grok_resubmit_images", document.getElementById("resubmit-images").value);
+            
+            document.getElementById("options-modal").style.display = 'none';
+        }
+
+        function newChat() {
+            if (currentAbortController) {
+                currentAbortController.abort();
+                currentAbortController = null;
+            }
+            chatHistory = [];
+            currentNodeId = null;
+            currentSessionId = null;
+            currentSessionTitle = null;
+            document.getElementById("chat-box").innerHTML = '<div id="grok-splash"><img src="img/grok.svg" alt="Grok"></div><div class="message-row" style="justify-content: center;"><div class="message system" id="sys-msg-container" style="text-align: center; max-width: 800px; line-height: 1.6;"></div></div>';
+            updateSystemMessage();
+            clearImages();
+            resetInputState();
+            loadSessionsList();
+            
+            const newChatBtn = document.getElementById("new-chat-btn");
+            if (newChatBtn) newChatBtn.classList.add("hollow");
+        }
+
+        // Image Handling
+        function handleFileSelect(event) {
+            if (!event.target.files) return;
+            handleFiles(event.target.files);
+            event.target.value = ""; // reset input
+        }
+
+        function handleFiles(files) {
+            Array.from(files).forEach(file => {
+                if (!file.type.startsWith('image/')) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const base64Str = e.target.result;
+                    pendingImages.push({ file: file, base64: base64Str });
+                    renderImagePreviews();
+                    validateInput();
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function setupDragAndDropOrPaste() {
+            const userInput = document.getElementById("user-input");
+            const inputContainer = document.querySelector(".input-container");
+
+            userInput.addEventListener("paste", (e) => {
+                const items = (e.clipboardData || window.clipboardData).items;
+                let files = [];
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].kind === 'file') {
+                        files.push(items[i].getAsFile());
+                    }
+                }
+                if (files.length > 0) {
+                    handleFiles(files);
+                }
+            });
+
+            inputContainer.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                inputContainer.style.borderColor = "var(--accent-color)";
+            });
+
+            inputContainer.addEventListener("dragleave", (e) => {
+                e.preventDefault();
+                inputContainer.style.borderColor = "";
+            });
+
+            inputContainer.addEventListener("drop", (e) => {
+                e.preventDefault();
+                inputContainer.style.borderColor = "";
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    handleFiles(e.dataTransfer.files);
+                }
+            });
+        }
+
+        function renderImagePreviews() {
+            const container = document.getElementById("image-preview-container");
+            container.innerHTML = "";
+            pendingImages.forEach((imgObj, idx) => {
+                const wrap = document.createElement("div");
+                wrap.className = "image-preview-item";
+                wrap.style.backgroundImage = `url('${imgObj.base64}')`;
+                wrap.onclick = () => openImageModal(imgObj.base64);
+
+                const removeBtn = document.createElement("button");
+                removeBtn.className = "image-remove-btn";
+                removeBtn.innerHTML = "&times;";
+                removeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    pendingImages.splice(idx, 1);
+                    renderImagePreviews();
+                };
+
+                wrap.appendChild(removeBtn);
+                container.appendChild(wrap);
+            });
+        }
+
+        function clearImages() {
+            pendingImages = [];
+            renderImagePreviews();
+        }
+
+        function openImageModal(src) {
+            const modal = document.getElementById("image-modal");
+            document.getElementById("fullscreen-img-preview").src = src;
+            modal.style.display = "flex";
+        }
+        function closeImageModal(e) {
+            if (e.target.id === "image-modal") {
+                document.getElementById("image-modal").style.display = "none";
+            }
+        }
+
+        function validateInput() {
+            const inputField = document.getElementById("user-input");
+            const sendBtn = document.getElementById("send-btn");
+            // Disable if text is empty, regardless of images
+            sendBtn.disabled = inputField.value.trim().length === 0;
+        }
+
+        function handleKeyPress(e) {
+            validateInput();
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (!document.getElementById("send-btn").disabled) sendMessage();
+            }
+        }
+        
+        function autoResize(el) {
+            if (!el.value) {
+                el.style.height = '32px';
+                return;
+            }
+            el.style.height = '32px';
+            el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+        }
+
+        function setInputState(isGenerating) {
+            const inputField = document.getElementById("user-input");
+            const sendBtn = document.getElementById("send-btn");
+            const attachBtn = document.querySelector(".attach-btn");
+            const stopBtnContainer = document.getElementById("stop-btn-container");
+            
+            if (isGenerating) {
+                inputField.disabled = true;
+                sendBtn.disabled = true;
+                attachBtn.disabled = true;
+                stopBtnContainer.style.display = "flex";
+            } else {
+                inputField.disabled = false;
+                attachBtn.disabled = false;
+                validateInput();
+                stopBtnContainer.style.display = "none";
+                inputField.focus();
+            }
+        }
+
+        function resetInputState() {
+            setInputState(false);
+            currentAbortController = null;
+        }
+
+        function stopGeneration() {
+            if (currentAbortController) currentAbortController.abort();
+        }
+        
+        function startEdit(nodeId, textNode, actionsDiv) {
+            const historyItem = chatHistory.find(n => n.id === nodeId);
+            if (!historyItem) return;
+            let oldText = "";
+            if (historyItem.role === "user") {
+                if (typeof historyItem.content === "string") {
+                    oldText = historyItem.content;
+                } else {
+                    const txtPart = historyItem.content.find(p => p.type === "input_text");
+                    if (txtPart) oldText = txtPart.text;
+                }
+            } else {
+                oldText = historyItem.content;
+            }
+
+            const textarea = document.createElement("textarea");
+            textarea.value = oldText;
+            textarea.style.width = "100%";
+            textarea.style.minWidth = "600px";
+            textarea.style.maxWidth = "calc(100vw - 320px)";
+            textarea.style.minHeight = "200px";
+            textarea.style.background = "#1a1a1a";
+            textarea.style.color = "#fff";
+            textarea.style.border = "1px solid var(--accent-color)";
+            textarea.style.padding = "10px";
+            textarea.style.borderRadius = "8px";
+            textarea.style.marginTop = "8px";
+            textarea.style.fontFamily = "inherit";
+
+            const originalDisplay = textNode.style.display;
+            textNode.style.display = "none";
+            textNode.parentNode.insertBefore(textarea, textNode.nextSibling);
+
+            const oldActions = Array.from(actionsDiv.childNodes);
+            actionsDiv.innerHTML = "";
+
+            const saveBtn = document.createElement("button");
+            saveBtn.innerHTML = "<i class='fa-solid fa-check'></i> Save";
+            saveBtn.onclick = () => {
+                const newText = textarea.value;
+                if (historyItem.role === "user") {
+                    if (typeof historyItem.content === "string") {
+                        historyItem.content = newText;
+                    } else {
+                        const txtPart = historyItem.content.find(p => p.type === "input_text");
+                        if (txtPart) txtPart.text = newText;
+                        else historyItem.content.push({type: "input_text", text: newText});
+                    }
+                    textNode.textContent = newText;
+                } else {
+                    historyItem.content = newText;
+                    textNode.innerHTML = marked.parse(newText);
+                }
+                finishEdit();
+            };
+
+            const cancelBtn = document.createElement("button");
+            cancelBtn.innerHTML = "<i class='fa-solid fa-xmark'></i> Cancel";
+            cancelBtn.className = "secondary";
+            cancelBtn.onclick = () => finishEdit();
+
+            function finishEdit() {
+                saveCurrentSession();
+                textarea.remove();
+                textNode.style.display = originalDisplay;
+                actionsDiv.innerHTML = "";
+                oldActions.forEach(node => actionsDiv.appendChild(node));
+            }
+
+            actionsDiv.appendChild(saveBtn);
+            actionsDiv.appendChild(cancelBtn);
+            textarea.focus();
+        }
+
+
+        // Format content payload for Vision requests
+        // Format content payload for xAI /v1/responses (vision support)
+        function buildMessageContent(text, images) {
+            if (!images || images.length === 0) return text;
+
+            const content = [];
+            images.forEach(img => {
+                content.push({
+                    type: "input_image",
+                    image_url: img.base64,      // ?? direct data: URI string (your FileReader already gives this)
+                    detail: "high"
+                });
+            });
+            content.push({
+                type: "input_text",
+                text: text
+            });
+            return content;
+        }
+
+        function renderFullChat() {
+            const chatBox = document.getElementById("chat-box");
+            chatBox.innerHTML = '';
+            
+            const thread = getActiveThread();
+            
+            thread.forEach((item, idx) => {
+                const row = document.createElement("div");
+                const isUser = item.role === 'user';
+                row.className = `message-row ${isUser ? 'user' : 'grok'}`;
+                
+                const avatar = document.createElement("div");
+                avatar.className = "avatar";
+                avatar.innerHTML = getAvatarHtml(isUser);
+                row.appendChild(avatar);
+                
+                const wrap = document.createElement("div");
+                wrap.className = "msg-wrap";
+                
+                const header = document.createElement("div");
+                header.className = "msg-header";
+                header.textContent = isUser ? getUserName() : getAiName();
+                
+                // Add branch navigation if there are siblings
+                const siblings = chatHistory.filter(n => n.parentId === item.parentId);
+                if (siblings.length > 1) {
+                    const siblingIndex = siblings.findIndex(n => n.id === item.id);
+                    const navDiv = document.createElement("div");
+                    navDiv.className = "branch-nav";
+                    navDiv.style.cssText = "display:inline-flex; flex-direction:row; align-items:center; gap:5px; font-size:0.8rem; color:#888; margin-left:10px; flex-shrink:0; white-space:nowrap;";
+                    
+                    const prevBtn = document.createElement("button");
+                    prevBtn.innerHTML = "<i class='fa-solid fa-chevron-left'></i>";
+                    prevBtn.style.cssText = "background:transparent; border:none; padding:0 3px; margin:0; width:auto; cursor:pointer; color:#888;";
+                    if (siblingIndex > 0) prevBtn.onclick = () => switchToBranch(siblings[siblingIndex - 1].id);
+                    else prevBtn.style.opacity = "0.3";
+                    
+                    const nextBtn = document.createElement("button");
+                    nextBtn.innerHTML = "<i class='fa-solid fa-chevron-right'></i>";
+                    nextBtn.style.cssText = "background:transparent; border:none; padding:0 3px; margin:0; width:auto; cursor:pointer; color:#888;";
+                    if (siblingIndex < siblings.length - 1) nextBtn.onclick = () => switchToBranch(siblings[siblingIndex + 1].id);
+                    else nextBtn.style.opacity = "0.3";
+                    
+                    navDiv.appendChild(prevBtn);
+                    navDiv.appendChild(document.createTextNode(`${siblingIndex + 1} / ${siblings.length}`));
+                    navDiv.appendChild(nextBtn);
+                    
+                    header.appendChild(navDiv);
+                }
+                
+                wrap.appendChild(header);
+                
+                const msg = document.createElement("div");
+                msg.className = `message ${isUser ? 'user' : 'grok'}`;
+                
+                                let textNodeTarget = msg;
+                if (isUser) {
+                    if (typeof item.content === 'string') {
+                        msg.textContent = item.content;
+                    } else if (Array.isArray(item.content)) {
+                        const imgGrid = document.createElement("div");
+                        imgGrid.className = "user-image-grid";
+                        let textStr = "";
+                        item.content.forEach(part => {
+                            if (part.type === "input_image") {
+                                const el = document.createElement("img");
+                                el.src = part.image_url;
+                                el.onclick = () => openImageModal(part.image_url);
+                                imgGrid.appendChild(el);
+                            } else if (part.type === "input_text") {
+                                textStr = part.text;
+                            }
+                        });
+                        msg.appendChild(imgGrid);
+                        const textNode = document.createElement("div");
+                        textNode.className = "text-node";
+                        textNode.textContent = textStr;
+                        msg.appendChild(textNode);
+                        textNodeTarget = textNode;
+                    }
+                } else {
+                     const mainText = document.createElement("div");
+                     mainText.className = "main-content";
+                     mainText.innerHTML = marked.parse(item.content);
+                     msg.appendChild(mainText);
+                     textNodeTarget = mainText;
+                }
+                
+                const bubbleContainer = document.createElement("div");
+                bubbleContainer.className = "msg-bubble-container";
+                
+                if (isUser) {
+                    const lineInfo = document.createElement("div");
+                    lineInfo.className = "line-info";
+                    const timeObj = new Date(item.timestamp || Date.now());
+                    const timeStr = timeObj.getHours().toString().padStart(2, '0') + ':' + timeObj.getMinutes().toString().padStart(2, '0');
+                    
+                    const readMark = document.createElement("div");
+                    readMark.className = "read-mark";
+                    readMark.textContent = "Read";
+                    
+                    const timeSinceSent = Date.now() - (item.timestamp || Date.now());
+                    if (timeSinceSent < 1000) {
+                        readMark.style.visibility = "hidden";
+                        setTimeout(() => {
+                            readMark.style.visibility = "visible";
+                        }, 1000 - timeSinceSent);
+                    }
+                    
+                    const timeMark = document.createElement("div");
+                    timeMark.textContent = timeStr;
+                    
+                    lineInfo.appendChild(readMark);
+                    lineInfo.appendChild(timeMark);
+                    
+                    bubbleContainer.appendChild(msg);
+                    bubbleContainer.appendChild(lineInfo);
+                    wrap.appendChild(bubbleContainer);
+                } else {
+                    bubbleContainer.appendChild(msg);
+                    wrap.appendChild(bubbleContainer);
+                }
+                
+                // historical actions
+                const actionsDiv = document.createElement("div");
+                actionsDiv.className = isUser ? "msg-actions user-actions" : "msg-actions";
+                
+                if (!isUser && item.model_used) {
+                    const modelInfo = document.createElement("span");
+                    modelInfo.className = "model-info-badge";
+                    modelInfo.innerHTML = "<i class='fa-solid fa-microchip' style='margin-right:4px;'></i> " + item.model_used;
+                    actionsDiv.appendChild(modelInfo);
+                }
+
+                const editBtn = document.createElement("button");
+                editBtn.innerHTML = "<i class='fa-solid fa-pen'></i> Edit";
+                editBtn.onclick = () => startEdit(item.id, textNodeTarget, actionsDiv);
+                actionsDiv.appendChild(editBtn);
+
+                if (!isUser) {
+                    const rBtn = document.createElement("button");
+                    rBtn.innerHTML = "<i class='fa-solid fa-rotate-left'></i> Retry";
+                    rBtn.onclick = () => retryNode(item.id);
+                    actionsDiv.appendChild(rBtn);
+                }
+                wrap.appendChild(actionsDiv);
+                
+                row.appendChild(wrap);
+                chatBox.appendChild(row);
+            });
+            
+            
+        }
+        
+        async function retryNode(nodeId) {
+            const node = chatHistory.find(n => n.id === nodeId);
+            if (!node) return;
+            // The parent of the AI node is the user's message
+            currentNodeId = node.parentId;
+            saveCurrentSession();
+            renderFullChat();
+            
+            await generateResponse();
+        }
+
+
+        async function sendMessage() {
+            const inputField = document.getElementById("user-input");
+            const text = inputField.value.trim();
+            const apiKey = localStorage.getItem("grok_api_key") || "";
+
+            if (!text) return;
+            if (!apiKey) {
+                alert("Please click Settings and set your API key first.");
+                document.getElementById('options-modal').style.display = 'flex';
+                return;
+            }
+            
+            const imagesToSubmit = [...pendingImages];
+            clearImages();
+            inputField.value = "";
+            autoResize(inputField);
+            validateInput();
+
+            const splash = document.getElementById("grok-splash");
+            if (splash) splash.remove();
+
+            const msgId = generateId();
+            const messageContent = buildMessageContent(text, imagesToSubmit);
+            chatHistory.push({ id: msgId, parentId: currentNodeId, role: "user", content: messageContent, timestamp: Date.now() });
+            currentNodeId = msgId;
+            saveCurrentSession();
+            
+            const newChatBtn = document.getElementById("new-chat-btn");
+            if (newChatBtn) newChatBtn.classList.remove("hollow");
+            
+            renderFullChat();
+
+            await generateResponse();
+        }
+
+        async function generateResponse() {
+            const chatBox = document.getElementById("chat-box");
+            const model = document.getElementById("model-select").value;
+            const agentCount = document.getElementById("agent-count").value;
+            const apiKey = localStorage.getItem("grok_api_key") || "";
+            const systemPrompt = document.getElementById("system-prompt").value;
+
+            setInputState(true);
+
+            // Create AI Message Container
+            const row = document.createElement("div");
+            row.className = "message-row grok";
+            
+            const avatar = document.createElement("div");
+            avatar.className = "avatar";
+            avatar.innerHTML = getAvatarHtml(false);
+            row.appendChild(avatar);
+            
+            const wrap = document.createElement("div");
+            wrap.className = "msg-wrap";
+            
+            const header = document.createElement("div");
+            header.className = "msg-header";
+            header.textContent = getAiName();
+            wrap.appendChild(header);
+            
+            const aiMessageDiv = document.createElement("div");
+            aiMessageDiv.className = "message grok";
+            
+            const contentDiv = document.createElement("div");
+            contentDiv.className = "content";
+            
+            const mainTextContent = document.createElement("div");
+            mainTextContent.className = "main-content";
+
+            // Default thinking indicator inside main text initially
+            const thinkingDiv = document.createElement("div");
+            thinkingDiv.className = "thinking";
+            const thinkingText = model.includes("multi-agent") ? "Agents thinking..." : "Thinking...";
+            thinkingDiv.innerHTML = `<span></span><span></span><span></span> ${thinkingText}`;
+            mainTextContent.appendChild(thinkingDiv);
+            
+            contentDiv.appendChild(mainTextContent);
+            aiMessageDiv.appendChild(contentDiv);
+            
+            const actionsDiv = document.createElement("div");
+            actionsDiv.className = "msg-actions";
+            actionsDiv.style.display = "none"; 
+            
+            const modelInfo = document.createElement("span");
+            modelInfo.className = "model-info-badge";
+            modelInfo.innerHTML = "<i class='fa-solid fa-microchip' style='margin-right:4px;'></i> " + document.getElementById("model-badge").textContent;
+            actionsDiv.appendChild(modelInfo);
+
+            const aiNodeId = generateId();
+            
+            const editBtn = document.createElement("button");
+            editBtn.innerHTML = "<i class='fa-solid fa-pen'></i> Edit";
+            editBtn.onclick = () => startEdit(aiNodeId, mainTextContent, actionsDiv);
+            actionsDiv.appendChild(editBtn);
+
+            const retryBtn = document.createElement("button");
+            retryBtn.innerHTML = "<i class='fa-solid fa-rotate-left'></i> Retry";
+            retryBtn.onclick = () => retryNode(aiNodeId);
+            actionsDiv.appendChild(retryBtn);
+            
+            aiMessageDiv.appendChild(actionsDiv);
+            
+            const bubbleContainer = document.createElement("div");
+            bubbleContainer.className = "msg-bubble-container";
+            bubbleContainer.appendChild(aiMessageDiv);
+            
+            wrap.appendChild(bubbleContainer);
+            row.appendChild(wrap);
+            chatBox.appendChild(row);
+
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            const activeThread = getActiveThread();
+            const maxContext = parseInt(document.getElementById("max-context").value) || 10;
+            let limitedHistory = activeThread.slice(-maxContext);
+            const resubmitImages = document.getElementById("resubmit-images").value === "true";
+            if (!resubmitImages) {
+                limitedHistory = limitedHistory.map((item, index) => {
+                    if (index < limitedHistory.length - 1 && item.role === 'user' && typeof item.content !== 'string') {
+                        const newContent = item.content.filter(p => p.type !== 'input_image');
+                        return { ...item, content: newContent };
+                    }
+                    return item;
+                });
+            }
+
+            const temperature = parseFloat(document.getElementById("temperature").value);
+            const top_p = parseFloat(document.getElementById("top-p").value);
+
+            let aiFullText = "";
+            currentAbortController = new AbortController();
+
+            try {
+                const response = await fetch("http://127.0.0.1:8000/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    signal: currentAbortController.signal,
+                    body: JSON.stringify({ 
+                        messages: limitedHistory, 
+                        model: model, 
+                        agent_count: parseInt(agentCount), 
+                        api_key: apiKey,
+                        temperature: temperature,
+                        top_p: top_p,
+                        system_prompt: systemPrompt
+                    })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let firstChunkReceived = false;
+                let textStarted = false;
+
+                // We expect NDJSON (newline delimited json chunks)
+                let buffer = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    if (!firstChunkReceived) {
+                        firstChunkReceived = true;
+                        if (thinkingDiv) thinkingDiv.remove();
+                    }
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    let lines = buffer.split('\n');
+                    buffer = lines.pop(); // Keep incomplete line in buffer
+
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        
+                        if (line.startsWith("[API Error")) {
+                            mainTextContent.innerHTML = `<span style="color: #ff6b6b;">${line}</span>`;
+                            continue;
+                        }
+
+                        try {
+                            const data = JSON.parse(line);
+                            if (data.type === "text") {
+                                if (!textStarted) {
+                                    textStarted = true;
+                                }
+                                aiFullText += data.content;
+                                mainTextContent.innerHTML = marked.parse(aiFullText);
+                            }
+                        } catch (e) {
+                            console.error("JSON parse error on line:", line, e);
+                        }
+                    }
+                    chatBox.scrollTop = chatBox.scrollHeight; 
+                }
+
+                if (aiFullText) {
+                    // For history, we only store the final text response
+                    const modelName = document.getElementById("model-badge").textContent;
+                    chatHistory.push({ id: aiNodeId, parentId: currentNodeId, role: "assistant", content: aiFullText, model_used: modelName, timestamp: Date.now() });
+                    currentNodeId = aiNodeId;
+                    saveCurrentSession();
+                    renderFullChat();
+                }
+
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    const note = "*[Generation Stopped]*";
+                    mainTextContent.innerHTML += `<br><br><span style="color: #888; font-style: italic;">${note}</span>`;
+                    if (aiFullText) {
+                        chatHistory.push({ id: aiNodeId, parentId: currentNodeId, role: "assistant", content: (aiFullText || "") + "\n\n" + note, timestamp: Date.now() });
+                        currentNodeId = aiNodeId;
+                        saveCurrentSession();
+                        renderFullChat();
+                    }
+                } else {
+                    mainTextContent.innerHTML += `<br><span style="color: #ff6b6b;">[Connection Error: ${error.message}]</span>`;
+                }
+            } finally {
+                if (contentDiv.querySelector('.thinking')) {
+                    mainTextContent.innerHTML = `<span style="color: #ff6b6b;">[Failed to connect to backend]</span>`;
+                }
+                actionsDiv.style.display = "flex";
+                resetInputState();
+            }
+        }
+    </script>
+</body>
+</html>
