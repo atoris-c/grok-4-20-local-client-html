@@ -251,13 +251,16 @@
             white-space: pre-wrap;
         }
         
+        .message-row.user .msg-wrap {
+            align-items: flex-end;
+        }
+
         .message-row.user .message {
             background: var(--accent-color);
             border-color: var(--accent-color);
             color: #fff;
             border-radius: 24px;
             border-top-right-radius: 4px;
-            margin-left: auto;
         }
 
         .message-row.grok .message { 
@@ -411,56 +414,80 @@
             background: #ddd; border-radius: 2px;
         }
 
-        /* Thinking Indicator */
-        .thinking {
-            display: flex; gap: 4px; align-items: center; height: 24px;
-            color: #888; font-style: italic; overflow: hidden;
+        /* Thinking Status Pill & Animations */
+        .thinking-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #1e1e1e;
+            border: 1px solid #2d2d2d;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            color: #b0b0b0;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            animation: fadeInStatus 0.3s ease;
+            margin-bottom: 12px;
+            user-select: none;
         }
-        .thinking span {
-            width: 6px; height: 6px; background-color: #888; border-radius: 50%;
-            animation: pulse 1.4s infinite ease-in-out both;
+        @keyframes fadeInStatus {
+            from { opacity: 0; transform: translateY(3px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .thinking span:nth-child(1) { animation-delay: -0.32s; }
-        .thinking span:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes pulse {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
+        .thinking-status-pill .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-color, #a855f7);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px var(--accent-color, #a855f7);
+            animation: dotGlow 1.5s infinite ease-in-out;
+        }
+        @keyframes dotGlow {
+            0%, 100% { transform: scale(0.8); opacity: 0.5; box-shadow: 0 0 2px var(--accent-color, #a855f7); }
+            50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 10px var(--accent-color, #a855f7); }
+        }
+        .thinking-status-pill .timer-text {
+            color: #666;
+            font-variant-numeric: tabular-nums;
         }
 
         /* Collapsible Thinking Process Box */
         .thinking-details {
-            border: 1px solid #2d2d2d;
-            background: #181818;
-            border-radius: 12px;
+            border: none;
+            background: transparent;
             margin-bottom: 12px;
-            padding: 10px 14px;
-            font-size: 0.9rem;
-            color: #a0a0a0;
-            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            color: #888;
             max-width: 100%;
         }
         .thinking-details[open] {
-            border-color: #3d3d3d;
-            background: #1e1e1e;
+            border: none;
+            background: transparent;
         }
         .thinking-details summary {
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
             outline: none;
             user-select: none;
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 8px;
-            color: #b0b0b0;
+            gap: 6px;
+            color: #888;
             list-style: none; /* Hide default triangle on Firefox/Edge */
+            transition: color 0.2s ease;
+        }
+        .thinking-details summary:hover {
+            color: #bbb;
         }
         .thinking-details summary::-webkit-details-marker {
             display: none; /* Hide default triangle on Chrome/Safari */
         }
         .thinking-details summary::before {
             content: "▶";
-            font-size: 0.7rem;
-            color: #888;
+            font-size: 0.65rem;
+            color: #666;
             transition: transform 0.2s ease;
             display: inline-block;
         }
@@ -468,11 +495,12 @@
             transform: rotate(90deg);
         }
         .thinking-content {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #2d2d2d;
+            margin-top: 6px;
+            padding-left: 12px;
+            border-left: 2px solid #333;
             font-family: inherit;
-            color: #8c8c8c;
+            font-style: italic;
+            color: #777;
             line-height: 1.5;
             white-space: pre-wrap;
             overflow-x: auto;
@@ -683,7 +711,7 @@
         ::-webkit-scrollbar-thumb:hover { background: #777; }
 
         /* History List */
-        #history-container { flex-grow: 1; overflow-y: auto; margin-top: 20px; border-top: 1px solid #222; padding-top: 15px; }
+        #history-container { flex-grow: 1; overflow-y: auto; margin-top: 12px; border-top: 1px solid #222; padding-top: 15px; }
         .history-item { padding: 10px; border-radius: 6px; cursor: pointer; color: #ccc; font-size: 0.9rem; margin-bottom: 0px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease; border: 1px solid transparent; }
         .history-item:hover { background: #222; color: #fff; transform: translateX(4px); }
         .history-item.active { background: var(--accent-color); color: #fff; font-weight: bold; transform: translateX(0); }
@@ -733,6 +761,10 @@
         .message-row.user .message tr:nth-child(even) {
             background-color: rgba(0, 0, 0, 0.1);
         }
+
+        #history-search:focus {
+            border-color: var(--accent-color, #a855f7) !important;
+        }
     </style>
 </head>
 <body>
@@ -765,7 +797,11 @@
                 </div>
             </div>
             
-            <h4 style="color: #888; margin-top: 20px; margin-bottom: 10px; font-size: 0.85rem; text-transform: uppercase;">Chat History</h4>
+            <h4 style="color: #888; margin-top: 20px; margin-bottom: 8px; font-size: 0.85rem; text-transform: uppercase;">Chat History</h4>
+            <div id="history-search-container" style="margin-bottom: 8px; position: relative; width: 100%;">
+                <input type="text" id="history-search" placeholder="Search..." oninput="filterSessionsList()" style="width: 100%; padding: 8px 16px; padding-right: 32px; background: #141414; border: 1px solid #2a2a2a; border-radius: 24px; color: #fff; font-size: 0.85rem; font-family: inherit; outline: none; transition: border-color 0.2s ease; box-sizing: border-box;">
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; color: #666; pointer-events: none; line-height: 1;"></i>
+            </div>
             <div id="history-container">
                 <!-- Sessions list goes here -->
             </div>
@@ -972,46 +1008,66 @@
         let currentSessionTitle = null;
         let isGeneratingTitle = false;
 
+        let allSessions = [];
+
         async function loadSessionsList() {
             try {
                 const response = await fetch('http://127.0.0.1:8000/sessions');
                 const data = await response.json();
-                const container = document.getElementById('history-container');
-                if (!container) return;
-                container.innerHTML = '';
-        
-                data.sessions.forEach(sess => {
-                    const item = document.createElement('div');
-                    item.className = 'history-item';
-                    if (currentSessionId === sess.id) item.classList.add('active');
-        
-                    const title = document.createElement('div');
-                    title.className = 'history-title';
-                    title.textContent = sess.title || "Untitled Chat";
-                    
-                    const delBtn = document.createElement('button');
-                    delBtn.className = 'history-del-btn';
-                    delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-                    delBtn.onclick = async (e) => {
-                        e.stopPropagation();
-                        if (confirm('Delete this chat?')) {
-                            await fetch(`http://127.0.0.1:8000/sessions/${sess.id}`, { method: 'DELETE' });
-                            if (currentSessionId === sess.id) {
-                                newChat();
-                            } else {
-                                loadSessionsList();
-                            }
-                        }
-                    };
-        
-                    item.onclick = () => loadSession(sess.id);
-                    item.appendChild(title);
-                    item.appendChild(delBtn);
-                    container.appendChild(item);
-                });
+                allSessions = data.sessions || [];
+                renderSessionsList(allSessions);
             } catch(err) {
                 console.error("Failed to load sessions:", err);
             }
+        }
+
+        function renderSessionsList(sessions) {
+            const container = document.getElementById('history-container');
+            if (!container) return;
+            container.innerHTML = '';
+    
+            sessions.forEach(sess => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                if (currentSessionId === sess.id) item.classList.add('active');
+    
+                const title = document.createElement('div');
+                title.className = 'history-title';
+                title.textContent = sess.title || "Untitled Chat";
+                
+                const delBtn = document.createElement('button');
+                delBtn.className = 'history-del-btn';
+                delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                delBtn.onclick = async (e) => {
+                    e.stopPropagation();
+                    if (confirm('Delete this chat?')) {
+                        await fetch(`http://127.0.0.1:8000/sessions/${sess.id}`, { method: 'DELETE' });
+                        if (currentSessionId === sess.id) {
+                            newChat();
+                        } else {
+                            loadSessionsList();
+                        }
+                    }
+                };
+    
+                item.onclick = () => loadSession(sess.id);
+                item.appendChild(title);
+                item.appendChild(delBtn);
+                container.appendChild(item);
+            });
+        }
+
+        function filterSessionsList() {
+            const query = (document.getElementById('history-search').value || '').toLowerCase().trim();
+            if (!query) {
+                renderSessionsList(allSessions);
+                return;
+            }
+            const filtered = allSessions.filter(sess => {
+                const title = (sess.title || '').toLowerCase();
+                return title.includes(query);
+            });
+            renderSessionsList(filtered);
         }
         
         async function loadSession(id) {
@@ -1550,6 +1606,100 @@
             hideSettings();
         }
 
+        async function copyWholeResponse(nodeId) {
+            const item = chatHistory.find(n => n.id === nodeId);
+            if (!item) return;
+            let textToCopy = "";
+            if (typeof item.content === "string") {
+                textToCopy = item.content;
+            } else if (Array.isArray(item.content)) {
+                const textPart = item.content.find(p => p.type === "input_text");
+                if (textPart) textToCopy = textPart.text;
+            }
+            if (!textToCopy) return;
+
+            try {
+                await navigator.clipboard.writeText(textToCopy);
+                triggerNotificationToast("Message copied to clipboard", "connected");
+            } catch (err) {
+                console.error("Clipboard copy failed:", err);
+            }
+        }
+
+        function forkChatFromHere(nodeId) {
+            // Forking constructs a new thread from root up to and including nodeId
+            if (currentAbortController) {
+                currentAbortController.abort();
+                currentAbortController = null;
+            }
+            
+            // Build linear path from root to nodeId
+            let forkHistory = [];
+            let currId = nodeId;
+            while (currId) {
+                const node = chatHistory.find(n => n.id === currId);
+                if (!node) break;
+                forkHistory.unshift(JSON.parse(JSON.stringify(node))); // Deep copy
+                currId = node.parentId;
+            }
+            
+            if (forkHistory.length === 0) return;
+            
+            // Start a new session
+            chatHistory = forkHistory;
+            currentNodeId = forkHistory[forkHistory.length - 1].id;
+            currentSessionId = 'session_' + Date.now();
+            
+            // Generate a fork-themed title or borrow from first user message
+            const firstUserMsg = chatHistory.find(m => m.role === 'user');
+            let titleText = "Forked Chat";
+            if (firstUserMsg) {
+                if (typeof firstUserMsg.content === 'string') titleText = firstUserMsg.content;
+                else {
+                    const txtPart = firstUserMsg.content.find(p => p.type === 'input_text');
+                    if (txtPart) titleText = txtPart.text;
+                }
+            }
+            if (titleText.length > 30) titleText = titleText.substring(0, 27) + "...";
+            currentSessionTitle = `[Fork] ${titleText}`;
+            
+            const splash = document.getElementById("grok-splash");
+            if (splash) splash.remove();
+            
+            saveCurrentSession();
+            renderFullChat();
+            loadSessionsList();
+            
+            const newChatBtn = document.getElementById("new-chat-btn");
+            if (newChatBtn) newChatBtn.classList.remove("hollow");
+            
+            triggerNotificationToast("Chat forked to a new session", "connected");
+        }
+
+        function triggerNotificationToast(message, type) {
+            const toast = document.getElementById('status-toast');
+            if (!toast) return;
+            
+            // Temporary overlay toast
+            const originalClass = toast.className;
+            const originalHtml = toast.innerHTML;
+            
+            clearTimeout(toastTimeout);
+            toast.className = `toast-notification show ${type}`;
+            toast.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${message}`;
+            
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+                // Restore connection state after some delay if it was disconnected
+                setTimeout(() => {
+                    if (isBackendConnected === false) {
+                        toast.className = 'toast-notification show disconnected';
+                        toast.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Backend server disconnected. Please launch start_grok.bat`;
+                    }
+                }, 400);
+            }, 2000);
+        }
+
         function newChat() {
             if (currentAbortController) {
                 currentAbortController.abort();
@@ -1666,18 +1816,47 @@
             }
         }
 
+        function isLastMessageUser() {
+            const thread = getActiveThread();
+            if (thread.length === 0) return false;
+            const lastMsg = thread[thread.length - 1];
+            return lastMsg.role === 'user';
+        }
+
         function validateInput() {
             const inputField = document.getElementById("user-input");
             const sendBtn = document.getElementById("send-btn");
-            // Disable if text is empty, regardless of images
-            sendBtn.disabled = inputField.value.trim().length === 0;
+            const textEmpty = inputField.value.trim().length === 0;
+            const isUserLast = isLastMessageUser();
+
+            if (textEmpty) {
+                if (isUserLast) {
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = `<i class="fa-solid fa-angles-right"></i>`;
+                    sendBtn.title = "Force Grok to respond";
+                    sendBtn.dataset.mode = "force";
+                } else {
+                    sendBtn.disabled = true;
+                    sendBtn.innerHTML = `<i class="fa-solid fa-arrow-up"></i>`;
+                    sendBtn.title = "Send message";
+                    sendBtn.dataset.mode = "send";
+                }
+            } else {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = `<i class="fa-solid fa-arrow-up"></i>`;
+                sendBtn.title = "Send message";
+                sendBtn.dataset.mode = "send";
+            }
         }
 
         function handleKeyPress(e) {
             validateInput();
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                if (!document.getElementById("send-btn").disabled) sendMessage();
+                const sendBtn = document.getElementById("send-btn");
+                if (!sendBtn.disabled && sendBtn.dataset.mode !== "force") {
+                    sendMessage();
+                }
             }
         }
         
@@ -1974,6 +2153,17 @@
                     rBtn.onclick = () => retryNode(item.id);
                     actionsDiv.appendChild(rBtn);
                 }
+
+                const copyBtn = document.createElement("button");
+                copyBtn.innerHTML = "<i class='fa-solid fa-copy'></i> Copy";
+                copyBtn.onclick = () => copyWholeResponse(item.id);
+                actionsDiv.appendChild(copyBtn);
+
+                const forkBtn = document.createElement("button");
+                forkBtn.innerHTML = "<i class='fa-solid fa-code-fork'></i> Fork";
+                forkBtn.onclick = () => forkChatFromHere(item.id);
+                actionsDiv.appendChild(forkBtn);
+
                 wrap.appendChild(actionsDiv);
                 
                 row.appendChild(wrap);
@@ -1983,6 +2173,7 @@
             // Scroll to bottom of chat after load/render
             setTimeout(() => {
                 chatBox.scrollTop = chatBox.scrollHeight;
+                validateInput();
             }, 50);
         }
         
@@ -2009,7 +2200,21 @@
             const text = inputField.value.trim();
             const apiKey = localStorage.getItem("grok_api_key") || "";
 
-            if (!text) return;
+            if (!text) {
+                const sendBtn = document.getElementById("send-btn");
+                if (sendBtn && sendBtn.dataset.mode === "force") {
+                    if (!apiKey) {
+                        alert("Please click Settings and set your API key first.");
+                        showSettings();
+                        return;
+                    }
+                    const splash = document.getElementById("grok-splash");
+                    if (splash) splash.remove();
+                    document.activeElement.blur();
+                    await generateResponse();
+                }
+                return;
+            }
             if (!apiKey) {
                 alert("Please click Settings and set your API key first.");
                 showSettings();
@@ -2074,12 +2279,31 @@
             const mainTextContent = document.createElement("div");
             mainTextContent.className = "main-content";
 
-            // Default thinking indicator inside main text initially
-            const thinkingDiv = document.createElement("div");
-            thinkingDiv.className = "thinking";
-            const thinkingText = model.includes("multi-agent") ? "Agents thinking..." : "Thinking...";
-            thinkingDiv.innerHTML = `<span></span><span></span><span></span> ${thinkingText}`;
+            // Modern thinking status indicator pill with active counter
+            let thinkingDiv = document.createElement("div");
+            thinkingDiv.className = "thinking-status-pill";
+            
+            const pulseDot = document.createElement("span");
+            pulseDot.className = "pulse-dot";
+            
+            const statusTextSpan = document.createElement("span");
+            statusTextSpan.className = "status-text";
+            statusTextSpan.textContent = model.includes("multi-agent") ? "Agents thinking" : "Thinking";
+            
+            const timerTextSpan = document.createElement("span");
+            timerTextSpan.className = "timer-text";
+            timerTextSpan.textContent = " (0.0s)";
+            
+            thinkingDiv.appendChild(pulseDot);
+            thinkingDiv.appendChild(statusTextSpan);
+            thinkingDiv.appendChild(timerTextSpan);
             mainTextContent.appendChild(thinkingDiv);
+
+            let startTime = Date.now();
+            let timerInterval = setInterval(() => {
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                timerTextSpan.textContent = ` (${elapsed}s)`;
+            }, 100);
             
             contentDiv.appendChild(mainTextContent);
             aiMessageDiv.appendChild(contentDiv);
@@ -2176,7 +2400,11 @@
                         if (!line.trim()) continue;
                         
                         if (line.startsWith("[API Error")) {
-                            if (thinkingDiv) thinkingDiv.remove();
+                            if (thinkingDiv) {
+                                thinkingDiv.remove();
+                                thinkingDiv = null;
+                            }
+                            clearInterval(timerInterval);
                             mainTextContent.innerHTML = `<span style="color: #ff6b6b;">${line}</span>`;
                             continue;
                         }
@@ -2186,7 +2414,6 @@
                             if (data.type === "thought") {
                                 if (!firstChunkReceived) {
                                     firstChunkReceived = true;
-                                    if (thinkingDiv) thinkingDiv.remove();
                                 }
                                 if (!thinkingDetails) {
                                     thinkingDetails = document.createElement("details");
@@ -2194,7 +2421,7 @@
                                     thinkingDetails.className = "thinking-details";
                                     
                                     const summary = document.createElement("summary");
-                                    summary.innerHTML = `🧠 Thinking Process`;
+                                    summary.innerHTML = `<i class="fa-solid fa-lightbulb"></i> Show thinking`;
                                     
                                     thinkingContent = document.createElement("div");
                                     thinkingContent.className = "thinking-content";
@@ -2209,8 +2436,12 @@
                             } else if (data.type === "text") {
                                 if (!firstChunkReceived) {
                                     firstChunkReceived = true;
-                                    if (thinkingDiv) thinkingDiv.remove();
                                 }
+                                if (thinkingDiv) {
+                                    thinkingDiv.remove();
+                                    thinkingDiv = null;
+                                }
+                                clearInterval(timerInterval);
                                 if (thinkingDetails && thinkingDetails.open) {
                                     thinkingDetails.removeAttribute("open");
                                 }
@@ -2267,8 +2498,12 @@
                     mainTextContent.innerHTML += `<br><span style="color: #ff6b6b;">[Connection Error: ${error.message}]</span>`;
                 }
             } finally {
-                if (contentDiv.querySelector('.thinking')) {
-                    if (thinkingDiv) thinkingDiv.remove();
+                clearInterval(timerInterval);
+                if (thinkingDiv) {
+                    thinkingDiv.remove();
+                    thinkingDiv = null;
+                }
+                if (contentDiv.querySelector('.thinking-status-pill')) {
                     mainTextContent.innerHTML = `<span style="color: #ff6b6b;">[Failed to connect to backend]</span>`;
                 }
                 actionsDiv.style.display = "flex";
