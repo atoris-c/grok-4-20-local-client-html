@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -32,8 +32,38 @@
             display: flex; 
             flex-direction: column; 
             border-right: 1px solid #222;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        #sidebar.collapsed {
+            width: 0;
+            min-width: 0;
+            padding-left: 0;
+            padding-right: 0;
+            border-right-width: 0;
         }
         #sidebar h3 { margin-top: 0; margin-bottom: 20px; font-size: 1.2rem; }
+        
+        .sidebar-toggle-btn {
+            width: auto !important;
+            margin: 0 !important;
+            padding: 6px 10px !important;
+            background: transparent !important;
+            border: none !important;
+            color: #888 !important;
+            cursor: pointer;
+            transition: all 0.2s ease !important;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .sidebar-toggle-btn:hover {
+            color: var(--accent-color) !important;
+            background: #1a1a1a !important;
+            transform: none !important;
+        }
         
         /* Form Elements */
         label { font-size: 0.9rem; margin-bottom: 5px; display: block; color: #a0a0a0; }
@@ -76,7 +106,18 @@
         .toggle-btn:last-child { border-right: none; }
         .toggle-btn.active { background: #333; color: var(--accent-color); font-weight: bold; }
         
-        #chat-header { padding: 20px; font-size: 1.4rem; font-weight: 800; color: #ececec; background: #121212; position: relative; z-index: 10; }
+        #chat-header { 
+            padding: 20px; 
+            font-size: 1.4rem; 
+            font-weight: 800; 
+            color: #ececec; 
+            background: #121212; 
+            position: relative; 
+            z-index: 10; 
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
         #chat-header::after { content: ""; position: absolute; left: 0; right: 0; bottom: -40px; height: 40px; background: linear-gradient(to bottom, #121212, rgba(18, 18, 18, 0)); pointer-events: none; }
         #model-badge { color: var(--accent-color); margin-left: 8px; font-weight: 600; font-size: 1.2rem; }
         .badge-bold { font-weight: 800; }
@@ -388,38 +429,46 @@
 <body>
 
     <div id="sidebar">
-        <h3>Grok Local Client</h3>
-        <button id="new-chat-btn" class="hollow" onclick="newChat()"><i class="fa-solid fa-plus"></i> New Chat</button>
-        <button class="secondary" onclick="document.getElementById('options-modal').style.display='flex'"><i class="fa-solid fa-gear"></i> Settings</button>
-
-        <div style="margin-top: 20px;">
-            <label>Model Variant</label>
-            <div class="toggle-group" id="model-toggles">
-                <button class="toggle-btn active" data-val="grok-4.20-beta-0309-non-reasoning" onclick="setModel(this)"><i class="fa-solid fa-bolt"></i> <!--Fast--></button>
-                <button class="toggle-btn" data-val="grok-4.20-beta-0309-reasoning" onclick="setModel(this)"><i class="fa-solid fa-brain"></i> <!--Reason--></button>
-                <button class="toggle-btn" data-val="grok-4.20-multi-agent-beta-0309" onclick="setModel(this)"><i class="fa-solid fa-robot"></i> <!--Agents--></button>
+        <div class="sidebar-wrapper" style="width: 220px; display: flex; flex-direction: column; height: 100%; flex-shrink: 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <h3 style="margin: 0;">Grok Local Client</h3>
+                <button id="collapse-sidebar-btn" class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Collapse Sidebar"><i class="fa-solid fa-chevron-left"></i></button>
             </div>
-            <input type="hidden" id="model-select" value="grok-4.20-beta-0309-non-reasoning">
+            <button id="new-chat-btn" class="hollow" onclick="newChat()"><i class="fa-solid fa-plus"></i> New Chat</button>
+            <button class="secondary" onclick="document.getElementById('options-modal').style.display='flex'"><i class="fa-solid fa-gear"></i> Settings</button>
 
-            <div id="agent-count-container" style="display: none;">
-                <label>Agent Count</label>
-                <div class="toggle-group" id="agent-toggles">
-                    <button class="toggle-btn active" data-val="4" onclick="setAgentCount(this)"><i class="fa-solid fa-user"></i> 4</button>
-                    <button class="toggle-btn" data-val="16" onclick="setAgentCount(this)"><i class="fa-solid fa-users"></i> 16</button>
+            <div style="margin-top: 20px;">
+                <label>Model Variant</label>
+                <div class="toggle-group" id="model-toggles">
+                    <button class="toggle-btn active" data-val="grok-4.20-beta-0309-non-reasoning" onclick="setModel(this)"><i class="fa-solid fa-bolt"></i> <!--Fast--></button>
+                    <button class="toggle-btn" data-val="grok-4.20-beta-0309-reasoning" onclick="setModel(this)"><i class="fa-solid fa-brain"></i> <!--Reason--></button>
+                    <button class="toggle-btn" data-val="grok-4.20-multi-agent-beta-0309" onclick="setModel(this)"><i class="fa-solid fa-robot"></i> <!--Agents--></button>
                 </div>
-                <input type="hidden" id="agent-count" value="4">
+                <input type="hidden" id="model-select" value="grok-4.20-beta-0309-non-reasoning">
+
+                <div id="agent-count-container" style="display: none;">
+                    <label>Agent Count</label>
+                    <div class="toggle-group" id="agent-toggles">
+                        <button class="toggle-btn active" data-val="4" onclick="setAgentCount(this)"><i class="fa-solid fa-user"></i> 4</button>
+                        <button class="toggle-btn" data-val="16" onclick="setAgentCount(this)"><i class="fa-solid fa-users"></i> 16</button>
+                    </div>
+                    <input type="hidden" id="agent-count" value="4">
+                </div>
             </div>
-        </div>
-        
-        <h4 style="color: #888; margin-top: 20px; margin-bottom: 10px; font-size: 0.85rem; text-transform: uppercase;">Chat History</h4>
-        <div id="history-container">
-            <!-- Sessions list goes here -->
+            
+            <h4 style="color: #888; margin-top: 20px; margin-bottom: 10px; font-size: 0.85rem; text-transform: uppercase;">Chat History</h4>
+            <div id="history-container">
+                <!-- Sessions list goes here -->
+            </div>
         </div>
     </div>
 
     <div id="main-content">
         <div id="chat-header">
-            Grok 4.20 <span id="model-badge">Fast</span>
+            <button id="expand-sidebar-btn" class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Expand Sidebar" style="display: none; padding: 6px 10px; font-size: 1.1rem; margin-right: 8px;">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <span>Grok 4.20 <span id="model-badge">Fast</span></span>
         </div>
         <div id="chat-box">
             <div id="grok-splash">
@@ -734,11 +783,34 @@
             renderFullChat();
         }
 
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const expandBtn = document.getElementById('expand-sidebar-btn');
+            const isCollapsed = sidebar.classList.toggle('collapsed');
+            
+            localStorage.setItem('sidebar-collapsed', isCollapsed ? 'true' : 'false');
+            
+            if (isCollapsed) {
+                expandBtn.style.display = 'flex';
+            } else {
+                expandBtn.style.display = 'none';
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             loadOptions();
             updateTheme(document.getElementById('model-select').value, document.getElementById('agent-count').value);
             updateSystemMessage();
             setupDragAndDropOrPaste();
+            
+            // Initialize sidebar collapse state
+            const sidebarCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+            if (sidebarCollapsed) {
+                const sidebar = document.getElementById('sidebar');
+                const expandBtn = document.getElementById('expand-sidebar-btn');
+                if (sidebar) sidebar.classList.add('collapsed');
+                if (expandBtn) expandBtn.style.display = 'flex';
+            }
         });
 
 
