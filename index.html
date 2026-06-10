@@ -427,6 +427,59 @@
             40% { transform: scale(1); }
         }
 
+        /* Collapsible Thinking Process Box */
+        .thinking-details {
+            border: 1px solid #2d2d2d;
+            background: #181818;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            color: #a0a0a0;
+            transition: all 0.3s ease;
+            max-width: 100%;
+        }
+        .thinking-details[open] {
+            border-color: #3d3d3d;
+            background: #1e1e1e;
+        }
+        .thinking-details summary {
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #b0b0b0;
+            list-style: none; /* Hide default triangle on Firefox/Edge */
+        }
+        .thinking-details summary::-webkit-details-marker {
+            display: none; /* Hide default triangle on Chrome/Safari */
+        }
+        .thinking-details summary::before {
+            content: "▶";
+            font-size: 0.7rem;
+            color: #888;
+            transition: transform 0.2s ease;
+            display: inline-block;
+        }
+        .thinking-details[open] summary::before {
+            transform: rotate(90deg);
+        }
+        .thinking-content {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #2d2d2d;
+            font-family: inherit;
+            color: #8c8c8c;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
         /* Modals & Animations */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -1842,6 +1895,21 @@
                         textNodeTarget = textNode;
                     }
                 } else {
+                     if (item.thought) {
+                         const details = document.createElement("details");
+                         details.className = "thinking-details";
+                         
+                         const summary = document.createElement("summary");
+                         summary.innerHTML = `🧠 Thinking Process`;
+                         
+                         const thoughtContent = document.createElement("div");
+                         thoughtContent.className = "thinking-content";
+                         thoughtContent.textContent = item.thought;
+                         
+                         details.appendChild(summary);
+                         details.appendChild(thoughtContent);
+                         msg.appendChild(details);
+                     }
                      const mainText = document.createElement("div");
                      mainText.className = "main-content";
                      mainText.innerHTML = marked.parse(item.content);
@@ -2067,6 +2135,9 @@
             const top_p = parseFloat(document.getElementById("top-p").value);
 
             let aiFullText = "";
+            let aiThoughtText = "";
+            let thinkingDetails = null;
+            let thinkingContent = null;
             currentAbortController = new AbortController();
 
             try {
@@ -2097,11 +2168,6 @@
                     const { done, value } = await reader.read();
                     if (done) break;
                     
-                    if (!firstChunkReceived) {
-                        firstChunkReceived = true;
-                        if (thinkingDiv) thinkingDiv.remove();
-                    }
-                    
                     buffer += decoder.decode(value, { stream: true });
                     let lines = buffer.split('\n');
                     buffer = lines.pop(); // Keep incomplete line in buffer
@@ -2110,13 +2176,44 @@
                         if (!line.trim()) continue;
                         
                         if (line.startsWith("[API Error")) {
+                            if (thinkingDiv) thinkingDiv.remove();
                             mainTextContent.innerHTML = `<span style="color: #ff6b6b;">${line}</span>`;
                             continue;
                         }
 
                         try {
                             const data = JSON.parse(line);
-                            if (data.type === "text") {
+                            if (data.type === "thought") {
+                                if (!firstChunkReceived) {
+                                    firstChunkReceived = true;
+                                    if (thinkingDiv) thinkingDiv.remove();
+                                }
+                                if (!thinkingDetails) {
+                                    thinkingDetails = document.createElement("details");
+                                    thinkingDetails.open = true;
+                                    thinkingDetails.className = "thinking-details";
+                                    
+                                    const summary = document.createElement("summary");
+                                    summary.innerHTML = `🧠 Thinking Process`;
+                                    
+                                    thinkingContent = document.createElement("div");
+                                    thinkingContent.className = "thinking-content";
+                                    
+                                    thinkingDetails.appendChild(summary);
+                                    thinkingDetails.appendChild(thinkingContent);
+                                    
+                                    contentDiv.insertBefore(thinkingDetails, mainTextContent);
+                                }
+                                aiThoughtText += data.content;
+                                thinkingContent.textContent = aiThoughtText;
+                            } else if (data.type === "text") {
+                                if (!firstChunkReceived) {
+                                    firstChunkReceived = true;
+                                    if (thinkingDiv) thinkingDiv.remove();
+                                }
+                                if (thinkingDetails && thinkingDetails.open) {
+                                    thinkingDetails.removeAttribute("open");
+                                }
                                 if (!textStarted) {
                                     textStarted = true;
                                 }
@@ -2130,10 +2227,18 @@
                     chatBox.scrollTop = chatBox.scrollHeight; 
                 }
 
-                if (aiFullText) {
-                    // For history, we only store the final text response
+                if (aiFullText || aiThoughtText) {
+                    // For history, we only store the final text response and thinking
                     const modelName = document.getElementById("model-badge").textContent;
-                    chatHistory.push({ id: aiNodeId, parentId: currentNodeId, role: "assistant", content: aiFullText, model_used: modelName, timestamp: Date.now() });
+                    chatHistory.push({
+                        id: aiNodeId,
+                        parentId: currentNodeId,
+                        role: "assistant",
+                        content: aiFullText,
+                        thought: aiThoughtText || undefined,
+                        model_used: modelName,
+                        timestamp: Date.now()
+                    });
                     currentNodeId = aiNodeId;
                     saveCurrentSession();
                     renderFullChat();
@@ -2143,8 +2248,17 @@
                 if (error.name === 'AbortError') {
                     const note = "*[Generation Stopped]*";
                     mainTextContent.innerHTML += `<br><br><span style="color: #888; font-style: italic;">${note}</span>`;
-                    if (aiFullText) {
-                        chatHistory.push({ id: aiNodeId, parentId: currentNodeId, role: "assistant", content: (aiFullText || "") + "\n\n" + note, timestamp: Date.now() });
+                    if (aiFullText || aiThoughtText) {
+                        const modelName = document.getElementById("model-badge").textContent;
+                        chatHistory.push({
+                            id: aiNodeId,
+                            parentId: currentNodeId,
+                            role: "assistant",
+                            content: (aiFullText || "") + "\n\n" + note,
+                            thought: aiThoughtText || undefined,
+                            model_used: modelName,
+                            timestamp: Date.now()
+                        });
                         currentNodeId = aiNodeId;
                         saveCurrentSession();
                         renderFullChat();
@@ -2154,6 +2268,7 @@
                 }
             } finally {
                 if (contentDiv.querySelector('.thinking')) {
+                    if (thinkingDiv) thinkingDiv.remove();
                     mainTextContent.innerHTML = `<span style="color: #ff6b6b;">[Failed to connect to backend]</span>`;
                 }
                 actionsDiv.style.display = "flex";

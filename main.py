@@ -83,8 +83,8 @@ async def chat_endpoint(req: ChatRequest):
                             # New Responses API format (updated March 2026 for Grok 4.20 models)
                             event_type = data.get("type")
 
-                            # === TEXT HANDLER (also broadened) ===
-                            if event_type and ("output_text" in event_type.lower() or "text" in event_type.lower()):
+                            # === REASONING HANDLER ===
+                            if event_type and "reasoning" in event_type.lower():
                                 if "completed" in event_type.lower() or "done" in event_type.lower() or "stop" in event_type.lower() or "end" in event_type.lower():
                                     continue
                                 
@@ -95,6 +95,29 @@ async def chat_endpoint(req: ChatRequest):
                                     delta_text = delta
                                 else:
                                     delta_text = data.get("text", "")
+                                
+                                if not delta_text and isinstance(data.get("delta"), str):
+                                    delta_text = data.get("delta")
+
+                                if delta_text:
+                                    yield json.dumps({"type": "thought", "content": delta_text}) + "\n"
+                                    continue
+
+                            # === TEXT HANDLER (also broadened) ===
+                            elif event_type and ("output_text" in event_type.lower() or ("text" in event_type.lower() and "reasoning" not in event_type.lower())):
+                                if "completed" in event_type.lower() or "done" in event_type.lower() or "stop" in event_type.lower() or "end" in event_type.lower():
+                                    continue
+                                
+                                delta = data.get("delta", {}) or data.get("content", {})
+                                if isinstance(delta, dict):
+                                    delta_text = delta.get("text") or data.get("text", "")
+                                elif isinstance(delta, str):
+                                    delta_text = delta
+                                else:
+                                    delta_text = data.get("text", "")
+
+                                if not delta_text and isinstance(data.get("delta"), str):
+                                    delta_text = data.get("delta")
 
                                 if delta_text:
                                     yield json.dumps({"type": "text", "content": delta_text}) + "\n"
