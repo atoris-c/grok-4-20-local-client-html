@@ -362,6 +362,28 @@
             position: relative; width: 60px; height: 60px; border-radius: 8px;
             border: 1px solid #555; background-size: cover; background-position: center;
         }
+        .file-preview-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #1e1e1e !important;
+            border: 1px solid #333 !important;
+            text-align: center;
+            cursor: default !important;
+            padding: 4px;
+            box-sizing: border-box;
+        }
+        .file-preview-name {
+            font-size: 0.65rem;
+            color: #888;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
         .image-remove-btn {
             position: absolute; top: -5px; right: -5px; background: red; color: white;
             border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px;
@@ -833,8 +855,8 @@
             </div>
             <div id="image-preview-container"></div>
             <div class="input-container">
-                <button class="attach-btn" onclick="document.getElementById('file-input').click()" title="Attach Image"><i class="fa-solid fa-paperclip"></i></button>
-                <input type="file" id="file-input" accept="image/*" multiple style="display: none;" onchange="handleFileSelect(event)">
+                <button class="attach-btn" onclick="document.getElementById('file-input').click()" title="Attach image or text file"><i class="fa-solid fa-paperclip"></i></button>
+                <input type="file" id="file-input" multiple style="display: none;" onchange="handleFileSelect(event)">
                 <textarea id="user-input" rows="1" placeholder="Message Grok..." oninput="validateInput(); autoResize(this)" onkeypress="handleKeyPress(event)" autocomplete="off"></textarea>
                 <button class="send-button" id="send-btn" onclick="sendMessage()" onmousedown="event.preventDefault();" disabled><i class="fa-solid fa-arrow-up"></i></button>
             </div>
@@ -1211,6 +1233,7 @@
         let chatHistory = [];
         let currentAbortController = null;
         let pendingImages = []; // Array of objects: { file, base64 }
+        let pendingTextFiles = []; // Array of objects: { name, content }
 
         let currentNodeId = null; // Tracks current leaf in the chat tree
         
@@ -1686,7 +1709,8 @@
             
             clearTimeout(toastTimeout);
             toast.className = `toast-notification show ${type}`;
-            toast.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${message}`;
+            const iconClass = type === 'disconnected' ? 'fa-triangle-exclamation' : 'fa-circle-check';
+            toast.innerHTML = `<i class="fa-solid ${iconClass}"></i> ${message}`;
             
             toastTimeout = setTimeout(() => {
                 toast.classList.remove('show');
@@ -1719,7 +1743,7 @@
             if (newChatBtn) newChatBtn.classList.add("hollow");
         }
 
-        // Image Handling
+        // Image & File Handling
         function handleFileSelect(event) {
             if (!event.target.files) return;
             handleFiles(event.target.files);
@@ -1727,18 +1751,65 @@
         }
 
         function handleFiles(files) {
+            let hasUnsupported = false;
+            let unsupportedMsg = "";
+
             Array.from(files).forEach(file => {
-                if (!file.type.startsWith('image/')) return;
-                
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const base64Str = e.target.result;
-                    pendingImages.push({ file: file, base64: base64Str });
-                    renderImagePreviews();
-                    validateInput();
-                };
-                reader.readAsDataURL(file);
+                if (file.type.startsWith('image/')) {
+                    if (file.size > 10 * 1024 * 1024) {
+                        hasUnsupported = true;
+                        unsupportedMsg = `Image "${file.name}" is too large (max 10MB).`;
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const base64Str = e.target.result;
+                        if (!pendingImages.some(img => img.file.name === file.name)) {
+                            pendingImages.push({ file: file, base64: base64Str });
+                            renderPreviews();
+                            validateInput();
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    const binaryExtensions = [
+                        'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'ico', 'tiff', 
+                        'pdf', 'zip', 'tar', 'gz', 'rar', '7z', 'dmg', 'iso', 
+                        'exe', 'dll', 'so', 'dylib', 'bin', 'dat', 'db', 'sqlite', 
+                        'mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac', 
+                        'mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'flv', 
+                        'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp',
+                        'class', 'jar', 'pyc', 'pyd'
+                    ];
+
+                    if (ext === 'pdf') {
+                        hasUnsupported = true;
+                        unsupportedMsg = "PDF files are not supported. Only images and common text files can be uploaded.";
+                    } else if (binaryExtensions.includes(ext)) {
+                        hasUnsupported = true;
+                        unsupportedMsg = `File "${file.name}" is not supported. Only images and text files can be uploaded.`;
+                    } else if (file.size >= 5 * 1024 * 1024) {
+                        hasUnsupported = true;
+                        unsupportedMsg = `File "${file.name}" exceeds the 5MB size limit.`;
+                    } else {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const textContent = e.target.result;
+                            if (!pendingTextFiles.some(f => f.name === file.name)) {
+                                pendingTextFiles.push({ name: file.name, content: textContent });
+                                renderPreviews();
+                                validateInput();
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                }
             });
+
+            if (hasUnsupported && unsupportedMsg) {
+                triggerNotificationToast(unsupportedMsg, "disconnected");
+            }
         }
 
         function setupDragAndDropOrPaste() {
@@ -1777,9 +1848,10 @@
             });
         }
 
-        function renderImagePreviews() {
+        function renderPreviews() {
             const container = document.getElementById("image-preview-container");
             container.innerHTML = "";
+
             pendingImages.forEach((imgObj, idx) => {
                 const wrap = document.createElement("div");
                 wrap.className = "image-preview-item";
@@ -1792,9 +1864,42 @@
                 removeBtn.onclick = (e) => {
                     e.stopPropagation();
                     pendingImages.splice(idx, 1);
-                    renderImagePreviews();
+                    renderPreviews();
+                    validateInput();
                 };
 
+                wrap.appendChild(removeBtn);
+                container.appendChild(wrap);
+            });
+
+            pendingTextFiles.forEach((fileObj, idx) => {
+                const wrap = document.createElement("div");
+                wrap.className = "image-preview-item file-preview-item";
+                wrap.title = fileObj.name;
+
+                const ext = fileObj.name.split('.').pop().toLowerCase();
+                const icon = document.createElement("i");
+                icon.className = "fa-solid fa-file-lines";
+                icon.style.fontSize = "1.2rem";
+                icon.style.color = "var(--accent-color, #a855f7)";
+                icon.style.marginBottom = "2px";
+
+                const nameSpan = document.createElement("span");
+                nameSpan.className = "file-preview-name";
+                nameSpan.textContent = ext;
+
+                const removeBtn = document.createElement("button");
+                removeBtn.className = "image-remove-btn";
+                removeBtn.innerHTML = "&times;";
+                removeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    pendingTextFiles.splice(idx, 1);
+                    renderPreviews();
+                    validateInput();
+                };
+
+                wrap.appendChild(icon);
+                wrap.appendChild(nameSpan);
                 wrap.appendChild(removeBtn);
                 container.appendChild(wrap);
             });
@@ -1802,7 +1907,8 @@
 
         function clearImages() {
             pendingImages = [];
-            renderImagePreviews();
+            pendingTextFiles = [];
+            renderPreviews();
         }
 
         function openImageModal(src) {
@@ -1827,6 +1933,7 @@
             const inputField = document.getElementById("user-input");
             const sendBtn = document.getElementById("send-btn");
             const textEmpty = inputField.value.trim().length === 0;
+            const hasAttachments = (pendingImages && pendingImages.length > 0) || (pendingTextFiles && pendingTextFiles.length > 0);
             const isUserLast = isLastMessageUser();
 
             if (textEmpty) {
@@ -1836,10 +1943,17 @@
                     sendBtn.title = "Force Grok to respond";
                     sendBtn.dataset.mode = "force";
                 } else {
-                    sendBtn.disabled = true;
-                    sendBtn.innerHTML = `<i class="fa-solid fa-arrow-up"></i>`;
-                    sendBtn.title = "Send message";
-                    sendBtn.dataset.mode = "send";
+                    if (hasAttachments) {
+                        sendBtn.disabled = false;
+                        sendBtn.innerHTML = `<i class="fa-solid fa-arrow-up"></i>`;
+                        sendBtn.title = "Send message";
+                        sendBtn.dataset.mode = "send";
+                    } else {
+                        sendBtn.disabled = true;
+                        sendBtn.innerHTML = `<i class="fa-solid fa-arrow-up"></i>`;
+                        sendBtn.title = "Send message";
+                        sendBtn.dataset.mode = "send";
+                    }
                 }
             } else {
                 sendBtn.disabled = false;
@@ -1973,10 +2087,18 @@
         }
 
 
-        // Format content payload for Vision requests
-        // Format content payload for xAI /v1/responses (vision support)
-        function buildMessageContent(text, images) {
-            if (!images || images.length === 0) return text;
+        function buildMessageContent(text, images, textFiles) {
+            let finalPromptText = text;
+            if (textFiles && textFiles.length > 0) {
+                let attachmentPrompt = "";
+                textFiles.forEach(file => {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    attachmentPrompt += `\n\n[Attached File: ${file.name}]\n\`\`\`${ext}\n${file.content}\n\`\`\``;
+                });
+                finalPromptText += attachmentPrompt;
+            }
+
+            if (!images || images.length === 0) return finalPromptText;
 
             const content = [];
             images.forEach(img => {
@@ -1988,7 +2110,7 @@
             });
             content.push({
                 type: "input_text",
-                text: text
+                text: finalPromptText
             });
             return content;
         }
@@ -2222,6 +2344,7 @@
             }
             
             const imagesToSubmit = [...pendingImages];
+            const textFilesToSubmit = [...pendingTextFiles];
             clearImages();
             inputField.value = "";
             autoResize(inputField);
@@ -2231,7 +2354,7 @@
             if (splash) splash.remove();
 
             const msgId = generateId();
-            const messageContent = buildMessageContent(text, imagesToSubmit);
+            const messageContent = buildMessageContent(text, imagesToSubmit, textFilesToSubmit);
             chatHistory.push({ id: msgId, parentId: currentNodeId, role: "user", content: messageContent, timestamp: Date.now() });
             currentNodeId = msgId;
             saveCurrentSession();
