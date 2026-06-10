@@ -21,7 +21,7 @@ A clean, native local web interface for interacting with Grok AI via the `x.ai` 
 2. Install the required Python dependencies:
 
 ```bash
-pip install fastapi uvicorn httpx pydantic
+pip install fastapi uvicorn httpx pydantic python-multipart
 ```
 
 ## How to Run
