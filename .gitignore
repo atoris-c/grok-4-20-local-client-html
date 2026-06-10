@@ -1,0 +1,18 @@
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore local chat sessions
+sessions/
+
+# Ignore scratchpads or temp files
+temp.txt
+
+# Ignore local MCP definitions
+mcps/
+
+# OS generated files
+.DS_Store
+Thumbs.db
