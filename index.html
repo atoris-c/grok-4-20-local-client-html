@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grok Local Client</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Kanit:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -14,7 +17,7 @@
             --accent-color: #58a6ff;
         }
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            font-family: 'Inter', 'Noto Sans JP', 'Kanit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
             margin: 0; 
             padding: 0; 
             background: #121212; 
@@ -85,7 +88,7 @@
             border-bottom: 1px solid #333;
             font-size: 0.8rem;
             color: #888;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Inter', 'Noto Sans JP', 'Kanit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             user-select: none;
         }
         .code-lang-label {
@@ -245,6 +248,7 @@
             word-wrap: break-word;
             border: 1px solid #333;
             background: #222;
+            white-space: pre-wrap;
         }
         
         .message-row.user .message {
@@ -1657,7 +1661,13 @@
         
         async function retryNode(nodeId) {
             const node = chatHistory.find(n => n.id === nodeId);
-            if (!node) return;
+            if (!node) {
+                // If it's not in history, it was a failed connection node.
+                // Just clear the temporary error card from DOM and try generating again.
+                renderFullChat();
+                await generateResponse();
+                return;
+            }
             // The parent of the AI node is the user's message
             currentNodeId = node.parentId;
             saveCurrentSession();
