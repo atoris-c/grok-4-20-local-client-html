@@ -500,6 +500,41 @@
             transform: translateY(-2px) !important;
         }
 
+        /* Status Toast Notification */
+        .toast-notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .toast-notification.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .toast-notification.disconnected {
+            background: #ff6b6b;
+            color: #fff;
+            border: 1px solid #ff4444;
+        }
+        .toast-notification.connected {
+            background: #1eb954;
+            color: #fff;
+            border: 1px solid #1aa34a;
+        }
+
         /* Fullscreen Image Preview */
         #fullscreen-img-preview {
             max-width: 90vw; max-height: 90vh; object-fit: contain;
@@ -688,6 +723,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Status Toast Notification -->
+    <div id="status-toast" class="toast-notification"></div>
 
     <!-- Scroll to Top Button -->
     <button id="scroll-top-btn" onclick="scrollToTop()" title="Scroll to Top">
@@ -1044,11 +1082,65 @@
             }
         }
 
+        // Active Connection Polling for Backend Status
+        let isBackendConnected = null;
+        let connectionPollInterval = null;
+        let toastTimeout = null;
+
+        async function checkBackendStatus() {
+            try {
+                // Poll the sessions endpoint which is lightweight and read-only
+                const response = await fetch('http://127.0.0.1:8000/sessions', { method: 'GET', cache: 'no-store' });
+                if (response.ok) {
+                    handleConnectionState(true);
+                } else {
+                    handleConnectionState(false);
+                }
+            } catch (err) {
+                handleConnectionState(false);
+            }
+        }
+
+        function handleConnectionState(isConnected) {
+            const toast = document.getElementById('status-toast');
+            if (!toast) return;
+
+            // Avoid repeating state rendering if state has not changed
+            if (isBackendConnected === isConnected) return;
+
+            isBackendConnected = isConnected;
+            clearTimeout(toastTimeout);
+
+            if (isConnected) {
+                // Connected state: show green success toast and hide after 3 seconds
+                toast.className = 'toast-notification show connected';
+                toast.innerHTML = `<i class="fa-solid fa-circle-check"></i> Connected to local backend!`;
+                
+                toastTimeout = setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            } else {
+                // Disconnected state: show persistent red warning toast
+                toast.className = 'toast-notification show disconnected';
+                toast.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Backend server disconnected. Please launch start_grok.bat`;
+            }
+        }
+
+        function startBackendPolling() {
+            // Check immediately on load
+            checkBackendStatus();
+            // Poll every 5 seconds
+            connectionPollInterval = setInterval(checkBackendStatus, 5000);
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             loadOptions();
             updateTheme(document.getElementById('model-select').value, document.getElementById('agent-count').value);
             updateSystemMessage();
             setupDragAndDropOrPaste();
+            
+            // Start polling backend status
+            startBackendPolling();
             
             // Initialize sidebar collapse state
             const sidebarCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
