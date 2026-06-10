@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grok Local Client</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
     <style>
         * { box-sizing: border-box; }
         :root {
@@ -65,25 +67,103 @@
             transform: none !important;
         }
         
+        /* Code Block Wrapper & Header */
+        .code-block-wrapper {
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            margin: 15px 0;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .code-block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #2d2d2d;
+            padding: 8px 16px;
+            border-bottom: 1px solid #333;
+            font-size: 0.8rem;
+            color: #888;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            user-select: none;
+        }
+        .code-lang-label {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .copy-code-btn {
+            background: transparent !important;
+            border: 1px solid #444 !important;
+            color: #aaa !important;
+            padding: 4px 8px !important;
+            font-size: 0.75rem !important;
+            margin: 0 !important;
+            width: auto !important;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s ease !important;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .copy-code-btn:hover {
+            color: #fff !important;
+            background: #3d3d3d !important;
+            border-color: #555 !important;
+            transform: none !important;
+        }
+        .copy-code-btn.copied {
+            color: var(--accent-color) !important;
+            border-color: var(--accent-color) !important;
+            background: rgba(88, 166, 255, 0.1) !important;
+        }
+        .code-block-wrapper pre {
+            margin: 0;
+            padding: 15px;
+            overflow-x: auto;
+            background: #1e1e1e;
+        }
+        .code-block-wrapper pre code {
+            font-family: 'Fira Code', Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            background: transparent !important;
+            padding: 0 !important;
+        }
+        
         /* Form Elements */
         label { font-size: 0.9rem; margin-bottom: 5px; display: block; color: #a0a0a0; }
-        select, input[type="text"], input[type="password"], input[type="number"], textarea, button { 
+        select, input[type="text"], input[type="password"], input[type="number"], button { 
             width: 100%; 
-            padding: 10px; 
+            padding: 10px 18px; 
             margin-bottom: 15px; 
             background: #222; 
             color: #ececec; 
             border: 1px solid #333; 
-            border-radius: 6px; 
+            border-radius: 24px; 
             font-size: 0.95rem;
             font-family: inherit;
             transition: all 0.2s ease;
+        }
+        textarea {
+            width: 100%; 
+            padding: 12px 18px; 
+            margin-bottom: 15px; 
+            background: #222; 
+            color: #ececec; 
+            border: 1px solid #333; 
+            border-radius: 12px; 
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            resize: vertical; 
+            min-height: 80px;
         }
         select:focus, input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus, textarea:focus {
             outline: none;
             border-color: var(--accent-color);
         }
-        textarea { resize: vertical; min-height: 80px; }
         button { 
             background: var(--accent-color); 
             color: white; 
@@ -100,8 +180,8 @@
         button:hover { filter: brightness(1.1); transform: translateY(-1px); }
         button:active { transform: translateY(1px); }
         
-        .toggle-group { display: flex; border: 1px solid #333; border-radius: 6px; overflow: hidden; margin-bottom: 15px; background: #222; }
-        .toggle-btn { flex: 1; padding: 10px 5px !important; background: transparent; border: none; color: #a0a0a0; font-size: 0.9rem; cursor: pointer; text-align: center; border-right: 1px solid #333; margin: 0; border-radius: 0; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s ease; }
+        .toggle-group { display: flex; border: 1px solid #333; border-radius: 24px; overflow: hidden; margin-bottom: 15px; background: #222; }
+        .toggle-btn { flex: 1; padding: 10px 5px !important; background: transparent; border: none; color: #a0a0a0; font-size: 0.9rem; cursor: pointer; text-align: center; border-right: 1px solid #333; margin: 0; border-radius: 0 !important; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s ease; }
         .toggle-btn:hover:not(.active) { background: #2a2a2a; color: #ddd; }
         .toggle-btn:last-child { border-right: none; }
         .toggle-btn.active { background: #333; color: var(--accent-color); font-weight: bold; }
@@ -343,25 +423,78 @@
             40% { transform: scale(1); }
         }
 
-        /* Modals */
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes popIn { from { opacity: 0; transform: scale(0.95) translateY(-10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-
+        /* Modals & Animations */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.8); z-index: 100;
             align-items: center; justify-content: center;
+        }
+        .modal-overlay.fade-in {
             animation: fadeIn 0.2s ease-out forwards;
         }
+        .modal-overlay.fade-out {
+            animation: fadeOut 0.2s ease-out forwards;
+        }
+        
         .modal-content {
             background: #222; padding: 30px; border-radius: 12px; width: 450px; 
             border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             max-height: 90vh; overflow-y: auto;
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .modal-content.shrink-in {
+            animation: shrinkIn 0.25s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        .modal-content.shrink-out {
+            animation: growOut 0.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
         .modal-content h3 { margin-top: 0; margin-bottom: 20px; text-align: center;}
         .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
         .modal-actions button { margin: 0; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        @keyframes shrinkIn {
+            from { opacity: 0; transform: scale(1.3); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes growOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(1.3); }
+        }
+
+        /* Scroll to Top Button */
+        #scroll-top-btn {
+            position: fixed;
+            bottom: 110px;
+            right: 30px;
+            width: 45px;
+            height: 45px;
+            border-radius: 50% !important;
+            background: #222 !important;
+            border: 1px solid #333 !important;
+            color: #ccc !important;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            z-index: 99;
+            transition: all 0.2s ease !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        #scroll-top-btn:hover {
+            color: var(--accent-color) !important;
+            border-color: var(--accent-color) !important;
+            background: #1a1a1a !important;
+            transform: translateY(-2px) !important;
+        }
 
         /* Fullscreen Image Preview */
         #fullscreen-img-preview {
@@ -435,7 +568,7 @@
                 <button id="collapse-sidebar-btn" class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Collapse Sidebar"><i class="fa-solid fa-chevron-left"></i></button>
             </div>
             <button id="new-chat-btn" class="hollow" onclick="newChat()"><i class="fa-solid fa-plus"></i> New Chat</button>
-            <button class="secondary" onclick="document.getElementById('options-modal').style.display='flex'"><i class="fa-solid fa-gear"></i> Settings</button>
+            <button class="secondary" onclick="showSettings()"><i class="fa-solid fa-gear"></i> Settings</button>
 
             <div style="margin-top: 20px;">
                 <label>Model Variant</label>
@@ -467,6 +600,9 @@
         <div id="chat-header">
             <button id="expand-sidebar-btn" class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Expand Sidebar" style="display: none; padding: 6px 10px; font-size: 1.1rem; margin-right: 8px;">
                 <i class="fa-solid fa-bars"></i>
+            </button>
+            <button id="header-new-chat-btn" class="sidebar-toggle-btn" onclick="newChat()" title="New Chat (Alt + N)" style="display: none; padding: 6px 10px; font-size: 1.1rem; margin-right: 8px;">
+                <i class="fa-solid fa-plus"></i>
             </button>
             <span>Grok 4.20 <span id="model-badge">Fast</span></span>
         </div>
@@ -543,11 +679,16 @@
             </div>
             
             <div class="modal-actions">
-                <button class="secondary" onclick="document.getElementById('options-modal').style.display='none'">Cancel</button>
+                <button class="secondary" onclick="hideSettings()">Cancel</button>
                 <button onclick="saveOptions()">Save Changes</button>
             </div>
         </div>
     </div>
+
+    <!-- Scroll to Top Button -->
+    <button id="scroll-top-btn" onclick="scrollToTop()" title="Scroll to Top">
+        <i class="fa-solid fa-chevron-up"></i>
+    </button>
 
     <!-- Fullscreen Image Modal -->
     <div id="image-modal" class="modal-overlay" onclick="closeImageModal(event)">
@@ -556,6 +697,66 @@
 
     
     <script>
+        // Configure marked to use highlight.js for syntax highlighting and wrap code blocks with a header & copy button
+        const renderer = new marked.Renderer();
+        renderer.code = function(code, infostring, escaped) {
+            let rawCode = code;
+            let language = infostring || 'plaintext';
+            
+            // Handle cases where marked passes options as an object (newer marked versions)
+            if (typeof code === 'object' && code !== null) {
+                rawCode = code.text || '';
+                language = code.lang || 'plaintext';
+            }
+            
+            let highlighted;
+            try {
+                const validLang = language && hljs.getLanguage(language) ? language : 'plaintext';
+                highlighted = hljs.highlight(rawCode, { language: validLang }).value;
+            } catch (e) {
+                highlighted = rawCode;
+            }
+            
+            const displayLang = language.toUpperCase();
+            return `
+                <div class="code-block-wrapper">
+                    <div class="code-block-header">
+                        <span class="code-lang-label">${displayLang}</span>
+                        <button class="copy-code-btn" onclick="copyCode(this)" title="Copy Code">
+                            <i class="fa-solid fa-copy"></i> Copy
+                        </button>
+                    </div>
+                    <pre><code class="hljs language-${language}">${highlighted}</code></pre>
+                </div>
+            `;
+        };
+        marked.use({ renderer });
+
+        // Copy code helper function
+        async function copyCode(button) {
+            const wrapper = button.closest('.code-block-wrapper');
+            if (!wrapper) return;
+            const codeEl = wrapper.querySelector('pre code');
+            if (!codeEl) return;
+            
+            // We want to copy the raw text, not the highlighted HTML
+            const codeText = codeEl.textContent || codeEl.innerText;
+            
+            try {
+                await navigator.clipboard.writeText(codeText);
+                
+                button.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.innerHTML = '<i class="fa-solid fa-copy"></i> Copy';
+                    button.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy code: ', err);
+            }
+        }
+
         let currentSessionId = null;
         let currentSessionTitle = null;
         let isGeneratingTitle = false;
@@ -783,17 +984,59 @@
             renderFullChat();
         }
 
+        function showSettings() {
+            const modal = document.getElementById('options-modal');
+            const content = modal.querySelector('.modal-content');
+            
+            modal.style.display = 'flex';
+            modal.classList.remove('fade-out');
+            content.classList.remove('shrink-out');
+            
+            modal.classList.add('fade-in');
+            content.classList.add('shrink-in');
+        }
+
+        function hideSettings() {
+            const modal = document.getElementById('options-modal');
+            const content = modal.querySelector('.modal-content');
+            
+            modal.classList.remove('fade-in');
+            content.classList.remove('shrink-in');
+            
+            modal.classList.add('fade-out');
+            content.classList.add('shrink-out');
+            
+            setTimeout(() => {
+                modal.style.display = 'none';
+                modal.classList.remove('fade-out');
+                content.classList.remove('shrink-out');
+            }, 200);
+        }
+
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const expandBtn = document.getElementById('expand-sidebar-btn');
+            const headerNewChatBtn = document.getElementById('header-new-chat-btn');
             const isCollapsed = sidebar.classList.toggle('collapsed');
             
             localStorage.setItem('sidebar-collapsed', isCollapsed ? 'true' : 'false');
             
             if (isCollapsed) {
                 expandBtn.style.display = 'flex';
+                headerNewChatBtn.style.display = 'flex';
             } else {
                 expandBtn.style.display = 'none';
+                headerNewChatBtn.style.display = 'none';
+            }
+        }
+
+        function scrollToTop() {
+            const chatBox = document.getElementById('chat-box');
+            if (chatBox) {
+                chatBox.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
             }
         }
 
@@ -808,8 +1051,33 @@
             if (sidebarCollapsed) {
                 const sidebar = document.getElementById('sidebar');
                 const expandBtn = document.getElementById('expand-sidebar-btn');
+                const headerNewChatBtn = document.getElementById('header-new-chat-btn');
                 if (sidebar) sidebar.classList.add('collapsed');
                 if (expandBtn) expandBtn.style.display = 'flex';
+                if (headerNewChatBtn) headerNewChatBtn.style.display = 'flex';
+            }
+
+            // Keyboard shortcut for New Chat (Alt + N)
+            document.addEventListener('keydown', (e) => {
+                if (e.altKey && e.key.toLowerCase() === 'n') {
+                    e.preventDefault();
+                    newChat();
+                }
+            });
+
+            // Scroll listener for showing/hiding scroll-to-top button
+            const chatBoxEl = document.getElementById('chat-box');
+            if (chatBoxEl) {
+                chatBoxEl.addEventListener('scroll', function() {
+                    const btn = document.getElementById('scroll-top-btn');
+                    if (btn) {
+                        if (this.scrollTop > 300) {
+                            btn.style.display = 'flex';
+                        } else {
+                            btn.style.display = 'none';
+                        }
+                    }
+                });
             }
         });
 
@@ -963,7 +1231,7 @@
             localStorage.setItem("grok_top_p", document.getElementById("top-p").value);
             localStorage.setItem("grok_resubmit_images", document.getElementById("resubmit-images").value);
             
-            document.getElementById("options-modal").style.display = 'none';
+            hideSettings();
         }
 
         function newChat() {
@@ -1381,7 +1649,10 @@
                 chatBox.appendChild(row);
             });
             
-            
+            // Scroll to bottom of chat after load/render
+            setTimeout(() => {
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }, 50);
         }
         
         async function retryNode(nodeId) {
@@ -1404,7 +1675,7 @@
             if (!text) return;
             if (!apiKey) {
                 alert("Please click Settings and set your API key first.");
-                document.getElementById('options-modal').style.display = 'flex';
+                showSettings();
                 return;
             }
             
