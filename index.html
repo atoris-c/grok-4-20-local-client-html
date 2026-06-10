@@ -855,7 +855,7 @@
             </div>
             <div id="image-preview-container"></div>
             <div class="input-container">
-                <button class="attach-btn" onclick="document.getElementById('file-input').click()" title="Attach image or text file"><i class="fa-solid fa-paperclip"></i></button>
+                <button class="attach-btn" onclick="document.getElementById('file-input').click()" onmousedown="event.preventDefault();" title="Attach image or text file"><i class="fa-solid fa-paperclip"></i></button>
                 <input type="file" id="file-input" multiple style="display: none;" onchange="handleFileSelect(event)">
                 <textarea id="user-input" rows="1" placeholder="Message Grok..." oninput="validateInput(); autoResize(this)" onkeypress="handleKeyPress(event)" autocomplete="off"></textarea>
                 <button class="send-button" id="send-btn" onclick="sendMessage()" onmousedown="event.preventDefault();" disabled><i class="fa-solid fa-arrow-up"></i></button>
