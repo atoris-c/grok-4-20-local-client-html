@@ -1,11 +1,12 @@
-﻿
+
 import json
 import os
 import glob
+import shutil
 from pathlib import Path
 from datetime import datetime
 import httpx
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -174,6 +175,20 @@ async def delete_session(session_id: str):
         file_path.unlink()
         return {"status": "success"}
     return {"error": "not found"}
+
+@app.post("/upload-avatar/{role}")
+async def upload_avatar_endpoint(role: str, file: UploadFile = File(...)):
+    if role not in ["user", "ai"]:
+        return {"error": "Invalid role"}
+    
+    img_dir = BASE_DIR / 'img'
+    img_dir.mkdir(exist_ok=True)
+    file_path = img_dir / f"{role}.png"
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    return {"status": "success", "filename": f"{role}.png"}
 
 if __name__ == "__main__":
     import uvicorn

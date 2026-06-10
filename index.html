@@ -441,9 +441,9 @@
         }
         
         .modal-content {
-            background: #222; padding: 30px; border-radius: 12px; width: 450px; 
-            border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            max-height: 90vh; overflow-y: auto;
+            background: #181818; padding: 30px; border-radius: 20px; width: 520px; 
+            border: 1px solid #2d2d2d; box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+            max-height: 95vh; overflow-y: auto;
         }
         .modal-content.shrink-in {
             animation: shrinkIn 0.25s cubic-bezier(0.25, 1, 0.5, 1) forwards;
@@ -451,9 +451,93 @@
         .modal-content.shrink-out {
             animation: growOut 0.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
-        .modal-content h3 { margin-top: 0; margin-bottom: 20px; text-align: center;}
-        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-content h3 { margin-top: 0; margin-bottom: 25px; text-align: center; font-size: 1.5rem; font-weight: 800;}
+        .modal-actions { display: flex; gap: 12px; margin-top: 25px; }
         .modal-actions button { margin: 0; }
+
+        /* Hide HTML5 Spinners */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        /* Settings Section Titles */
+        .settings-section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #2d2d2d;
+            padding-bottom: 6px;
+            transition: color 0.3s ease;
+        }
+
+        /* Avatar Upload Settings styling */
+        .avatar-settings-container {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+            justify-content: center;
+            background: #1f1f1f;
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid #2d2d2d;
+        }
+        .avatar-setting-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .avatar-preview-wrapper {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            border: 2px dashed #444;
+            overflow: hidden;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        .avatar-preview-wrapper:hover {
+            border-color: var(--accent-color);
+            transform: scale(1.05);
+        }
+        .avatar-preview-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .avatar-hover-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .avatar-preview-wrapper:hover .avatar-hover-overlay {
+            opacity: 1;
+        }
+        .avatar-hover-overlay i {
+            color: #fff;
+            font-size: 1.1rem;
+        }
 
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -558,9 +642,9 @@
         input[type="range"] { accent-color: var(--accent-color); }
         .settings-row { display: flex; gap: 15px; width: 100%; }
         .settings-col { flex: 1; display: flex; flex-direction: column; }
-        .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; width: 100%; }
         .slider-row input[type="range"] { flex-grow: 1; margin: 0; }
-        .slider-row input[type="number"] { width: 55px; margin: 0; padding: 5px; text-align: center; }
+        .slider-row input[type="number"] { width: 60px !important; min-width: 60px !important; padding: 8px !important; margin: 0 !important; text-align: center; border-radius: 12px !important; }
         
         .msg-actions.user-actions { justify-content: flex-end; margin-top: 4px; }
         .model-info-badge { color: #888; font-size: 0.75rem; margin-right: auto; display: flex; align-items: center;}
@@ -673,9 +757,35 @@
         <div class="modal-content">
             <h3>Settings</h3>
             
+            <div class="settings-section-title">Credentials</div>
             <label>xAI API Key:</label>
             <input type="password" id="api-key-input" placeholder="xai-..." />
             
+            <div class="settings-section-title">Profiles & Avatars</div>
+            <div class="avatar-settings-container">
+                <div class="avatar-setting-block">
+                    <label style="margin: 0; text-align: center;">User Avatar</label>
+                    <div class="avatar-preview-wrapper" onclick="document.getElementById('user-avatar-upload').click()" title="Click to change User Avatar">
+                        <img id="settings-user-avatar-preview" src="img/user.png" alt="User Avatar Preview">
+                        <div class="avatar-hover-overlay">
+                            <i class="fa-solid fa-camera"></i>
+                        </div>
+                    </div>
+                    <input type="file" id="user-avatar-upload" accept="image/*" style="display: none;" onchange="uploadAvatar('user', this)">
+                </div>
+                
+                <div class="avatar-setting-block">
+                    <label style="margin: 0; text-align: center;">AI Avatar</label>
+                    <div class="avatar-preview-wrapper" onclick="document.getElementById('ai-avatar-upload').click()" title="Click to change AI Avatar">
+                        <img id="settings-ai-avatar-preview" src="img/ai.png" alt="AI Avatar Preview">
+                        <div class="avatar-hover-overlay">
+                            <i class="fa-solid fa-camera"></i>
+                        </div>
+                    </div>
+                    <input type="file" id="ai-avatar-upload" accept="image/*" style="display: none;" onchange="uploadAvatar('ai', this)">
+                </div>
+            </div>
+
             <div class="settings-row">
                 <div class="settings-col">
                     <label>User Display Name:</label>
@@ -687,18 +797,24 @@
                 </div>
             </div>
 
+            <div class="settings-section-title">Model Parameters</div>
             <label>System Instruction:</label>
-            <textarea id="system-prompt">You are Grok. Use your tools when necessary.</textarea>
+            <textarea id="system-prompt" style="min-height: 70px;">You are Grok. Use your tools when necessary.</textarea>
 
-            <label>Max Context Messages (Default 10):</label>
-            <input type="number" id="max-context" value="10" min="1" max="100"/>
-            
-            <label>Images Resubmission</label>
-            <div class="toggle-group" id="resubmit-toggles" style="margin-bottom: 15px;">
-                <button class="toggle-btn active" onclick="setResubmit(this, true)"><i class="fa-solid fa-check"></i> Enabled</button>
-                <button class="toggle-btn" onclick="setResubmit(this, false)"><i class="fa-solid fa-xmark"></i> Disabled</button>
+            <div class="settings-row">
+                <div class="settings-col">
+                    <label>Max Context Messages:</label>
+                    <input type="number" id="max-context" value="10" min="1" max="100"/>
+                </div>
+                <div class="settings-col">
+                    <label>Images Resubmission:</label>
+                    <div class="toggle-group" id="resubmit-toggles" style="margin-bottom: 15px;">
+                        <button class="toggle-btn active" onclick="setResubmit(this, true)"><i class="fa-solid fa-check"></i> On</button>
+                        <button class="toggle-btn" onclick="setResubmit(this, false)"><i class="fa-solid fa-xmark"></i> Off</button>
+                    </div>
+                    <input type="hidden" id="resubmit-images" value="true">
+                </div>
             </div>
-            <input type="hidden" id="resubmit-images" value="true">
             
             <div class="settings-row">
                 <div class="settings-col">
@@ -1030,6 +1146,12 @@
             const modal = document.getElementById('options-modal');
             const content = modal.querySelector('.modal-content');
             
+            // Refresh avatar previews with current cache buster
+            const userPreview = document.getElementById('settings-user-avatar-preview');
+            const aiPreview = document.getElementById('settings-ai-avatar-preview');
+            if (userPreview) userPreview.src = `img/user.png?t=${avatarCacheBuster}`;
+            if (aiPreview) aiPreview.src = `img/ai.png?t=${avatarCacheBuster}`;
+
             modal.style.display = 'flex';
             modal.classList.remove('fade-out');
             content.classList.remove('shrink-out');
@@ -1262,11 +1384,56 @@
         function getUserName() { return localStorage.getItem("grok_user_name") || "You"; }
         function getAiName() { return localStorage.getItem("grok_ai_name") || "Grok"; }
         
+        let avatarCacheBuster = Date.now();
         function getAvatarHtml(isUser) {
             const roleStr = isUser ? 'user' : 'ai';
             const letter = isUser ? getUserName().charAt(0).toUpperCase() : getAiName().charAt(0).toUpperCase();
             const fallback = `this.onerror=null; this.parentElement.innerHTML='${letter}';`;
-            return `<img src="img/${roleStr}.png" onerror="${fallback}" alt="Avatar">`;
+            return `<img src="img/${roleStr}.png?t=${avatarCacheBuster}" onerror="${fallback}" alt="Avatar">`;
+        }
+
+        async function uploadAvatar(role, input) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // Show dynamic uploading visual preview in Settings modal
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const settingsPreview = document.getElementById(`settings-${role}-avatar-preview`);
+                if (settingsPreview) settingsPreview.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+
+            try {
+                const response = await fetch(`http://127.0.0.1:8000/upload-avatar/${role}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    // Update cache buster
+                    avatarCacheBuster = Date.now();
+                    
+                    // Update all avatars currently rendered in the chat DOM
+                    document.querySelectorAll('.avatar img').forEach(img => {
+                        const src = img.getAttribute('src');
+                        if (src && src.includes(`img/${role}.png`)) {
+                            img.src = `img/${role}.png?t=${avatarCacheBuster}`;
+                        }
+                    });
+                    
+                    // Force refresh settings preview from server to be in sync
+                    const settingsPreview = document.getElementById(`settings-${role}-avatar-preview`);
+                    if (settingsPreview) settingsPreview.src = `img/${role}.png?t=${avatarCacheBuster}`;
+                } else {
+                    alert('Failed to upload avatar: ' + (data.error || 'unknown error'));
+                }
+            } catch (err) {
+                console.error('Error uploading avatar:', err);
+                alert('Failed to connect to backend to save avatar.');
+            }
         }
 
         function loadOptions() {
