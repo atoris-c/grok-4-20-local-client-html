@@ -332,10 +332,23 @@
         }
 
         /* Markdown Styles in AI Msg */
+        .message.grok .main-content {
+            white-space: normal;
+        }
         .message.grok pre { background: #000; padding: 10px; border-radius: 6px; overflow-x: auto; }
         .message.grok code { background: #000; padding: 2px 4px; border-radius: 4px; font-family: monospace; }
-        .message.grok p { margin-top: 0; }
+        .message.grok p { margin-top: 0; margin-bottom: 12px; }
         .message.grok p:last-child { margin-bottom: 0; }
+        .message.grok ul, .message.grok ol { margin-top: 0; margin-bottom: 12px; padding-left: 20px; }
+        .message.grok li { margin-bottom: 4px; }
+        .message.grok li:last-child { margin-bottom: 0; }
+        .message.grok h1, .message.grok h2, .message.grok h3, .message.grok h4, .message.grok h5, .message.grok h6 {
+            margin-top: 16px;
+            margin-bottom: 8px;
+        }
+        .message.grok h1:first-child, .message.grok h2:first-child, .message.grok h3:first-child, .message.grok h4:first-child {
+            margin-top: 0;
+        }
 
         /* Actions under AI message */
         .msg-actions { margin-top: 8px; display: flex; gap: 8px; opacity: 0; transition: opacity 0.2s ease; }
